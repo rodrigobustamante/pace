@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+packages/db/.env
+
+# Build output
+.next/
+dist/
+out/
+
+# Turbo
+.turbo/
+
+# Prisma generated
+packages/db/node_modules/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

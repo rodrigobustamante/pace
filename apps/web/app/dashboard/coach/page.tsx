@@ -1,0 +1,324 @@
+"use client";
+
+import { useCoachStream } from "@/hooks/useCoachStream";
+import { CoachInsightCard } from "@/components/CoachInsightCard";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { useEffect, useState } from "react";
+
+function TypewriterText({ text, speed = 18 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState("");
+
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayed(text.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <>{displayed}<span style={{ opacity: displayed.length < text.length ? 1 : 0 }}>▌</span></>;
+}
+
+function StaggeredCard({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), index * 120 + 200);
+    return () => clearTimeout(t);
+  }, [index]);
+
+  return (
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(16px)",
+        transition: "opacity 0.4s ease, transform 0.4s ease",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default function CoachPage() {
+  const { insights, isLoading, error, refetch } = useCoachStream();
+
+  const insightCards = insights
+    ? [
+        { type: "positive" as const, ...insights.positive },
+        { type: "warning" as const, ...insights.warning },
+        { type: "tip" as const, ...insights.tip },
+        { type: "prediction" as const, ...insights.prediction },
+      ]
+    : [];
+
+  return (
+    <div>
+      <div
+        style={{
+          marginBottom: 28,
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 900,
+              fontFamily: "'Barlow Condensed', sans-serif",
+            }}
+          >
+            Coach <span style={{ color: "#fb923c" }}>IA</span>
+          </div>
+          <div style={{ fontSize: 13, color: "#475569", marginTop: 4 }}>
+            Análisis personalizado basado en tus datos de Strava
+          </div>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isLoading}
+          style={{
+            background: isLoading
+              ? "rgba(255,255,255,0.03)"
+              : "rgba(249,115,22,0.15)",
+            border: "1px solid rgba(249,115,22,0.3)",
+            borderRadius: 8,
+            padding: "8px 16px",
+            color: isLoading ? "#475569" : "#fb923c",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: isLoading ? "not-allowed" : "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            transition: "all 0.2s",
+          }}
+        >
+          {isLoading ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  border: "2px solid #475569",
+                  borderTopColor: "#fb923c",
+                  borderRadius: "50%",
+                  display: "inline-block",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+              Generando...
+            </span>
+          ) : (
+            "↻ Regenerar"
+          )}
+        </button>
+      </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+      `}</style>
+
+      {error && (
+        <div
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.3)",
+            borderRadius: 12,
+            padding: 16,
+            color: "#f87171",
+            fontSize: 13,
+            marginBottom: 20,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Summary skeleton */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, rgba(249,115,22,0.08), rgba(239,68,68,0.04))",
+              border: "1px solid rgba(249,115,22,0.15)",
+              borderRadius: 16,
+              padding: 24,
+            }}
+          >
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div
+                style={{
+                  fontSize: 36,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              >
+                📊
+              </div>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    height: 20,
+                    background: "rgba(255,255,255,0.06)",
+                    borderRadius: 4,
+                    marginBottom: 10,
+                    width: "40%",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                />
+                <div
+                  style={{
+                    height: 14,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 4,
+                    marginBottom: 6,
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                />
+                <div
+                  style={{
+                    height: 14,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 4,
+                    width: "70%",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
+          >
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} height={120} />
+            ))}
+          </div>
+        </div>
+      ) : insights ? (
+        <>
+          {/* Weekly summary with typewriter */}
+          <div
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(249,115,22,0.1), rgba(239,68,68,0.05))",
+              border: "1px solid rgba(249,115,22,0.2)",
+              borderRadius: 16,
+              padding: 24,
+              marginBottom: 24,
+            }}
+          >
+            <div
+              style={{ display: "flex", alignItems: "flex-start", gap: 16 }}
+            >
+              <div style={{ fontSize: 36, flexShrink: 0 }}>📊</div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    marginBottom: 10,
+                    color: "#f1f5f9",
+                  }}
+                >
+                  Resumen semanal
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#94a3b8",
+                    lineHeight: 1.75,
+                    minHeight: 40,
+                  }}
+                >
+                  <TypewriterText text={insights.summary} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Staggered insight cards */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
+            {insightCards.map((card, i) => (
+              <StaggeredCard key={card.type} index={i}>
+                <CoachInsightCard
+                  type={card.type}
+                  title={card.title}
+                  body={card.body}
+                />
+              </StaggeredCard>
+            ))}
+          </div>
+
+          {/* Footer note */}
+          <div
+            style={{
+              marginTop: 24,
+              padding: "12px 20px",
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ fontSize: 11, color: "#334155", fontFamily: "'DM Mono', monospace" }}>
+              Análisis válido para esta semana · se regenera automáticamente cada lunes
+            </span>
+            <span style={{ fontSize: 11, color: "#334155", fontFamily: "'DM Mono', monospace" }}>
+              gemini-2.5-flash
+            </span>
+          </div>
+        </>
+      ) : !error ? (
+        <div
+          style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 16,
+            padding: 48,
+            textAlign: "center",
+            color: "#475569",
+          }}
+        >
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🤖</div>
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              fontFamily: "'Barlow Condensed', sans-serif",
+              marginBottom: 8,
+              color: "#64748b",
+            }}
+          >
+            Sin suficientes datos todavía
+          </div>
+          <div style={{ fontSize: 13, maxWidth: 320, margin: "0 auto" }}>
+            Sincroniza al menos una semana de entrenamientos desde Strava para
+            activar el coach IA.
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

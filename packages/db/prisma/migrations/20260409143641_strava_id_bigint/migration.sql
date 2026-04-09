@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Activity" ALTER COLUMN "stravaId" SET DATA TYPE BIGINT;

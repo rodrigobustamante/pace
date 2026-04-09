@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(cuid())
+  stravaAthleteId   Int            @unique
+  name              String
+  email             String?
+  profileImageUrl   String?
+  maxHR             Int?
+  restingHR         Int?
+  accessToken       String
+  refreshToken      String
+  tokenExpiresAt    DateTime
+  activities        Activity[]
+  coachInsights     CoachInsight[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Activity {
+  id           String   @id @default(cuid())
+  stravaId     BigInt   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+
+  // Core
+  name         String
+  type         RunType
+  date         DateTime
+
+  // Performance
+  distanceM    Float
+  durationSec  Int
+  paceSeckm    Int
+  avgHRbpm     Int?
+  maxHRbpm     Int?
+  cadenceRpm   Int?
+  elevationM   Float?
+  caloriesKcal Int?
+
+  // Strava raw
+  stravaData   Json
+
+  // Computed
+  tss          Float?
+  feel         Int?
+
+  createdAt    DateTime @default(now())
+}
+
+model CoachInsight {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  refId     String?
+  content   Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+enum RunType {
+  easy
+  tempo
+  long
+  workout
+  race
+  unknown
+}
