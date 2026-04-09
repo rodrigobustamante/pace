@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { encrypt, decrypt } from "@/lib/crypto";
+import { refreshAccessToken } from "@/lib/strava/tokenRequest";
 
 export async function getStravaClient(userId: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -8,16 +9,7 @@ export async function getStravaClient(userId: string) {
 
   // Refresh proactively if token expires within 10 minutes
   if (user.tokenExpiresAt < new Date(Date.now() + 10 * 60 * 1000)) {
-    const res = await fetch("https://www.strava.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: process.env.STRAVA_CLIENT_ID,
-        client_secret: process.env.STRAVA_CLIENT_SECRET,
-        refresh_token: decrypt(user.refreshToken),
-        grant_type: "refresh_token",
-      }),
-    });
+    const res = await refreshAccessToken(decrypt(user.refreshToken));
 
     if (!res.ok) {
       throw new Error(`Strava token refresh failed: ${await res.text()}`);

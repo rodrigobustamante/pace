@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAppBaseUrl } from "@/lib/appBaseUrl";
 import { prisma } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
+import { exchangeAuthorizationCode } from "@/lib/strava/tokenRequest";
 import { syncActivities } from "@/services/strava/sync";
 
 export async function GET(req: NextRequest) {
@@ -11,16 +13,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/auth/error", req.url));
   }
 
-  const tokenRes = await fetch("https://www.strava.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: process.env.STRAVA_CLIENT_ID,
-      client_secret: process.env.STRAVA_CLIENT_SECRET,
-      code,
-      grant_type: "authorization_code",
-    }),
-  });
+  const redirectUri = `${getAppBaseUrl()}/api/strava/callback`;
+
+  const tokenRes = await exchangeAuthorizationCode(code, redirectUri);
 
   if (!tokenRes.ok) {
     console.error("Strava token exchange failed:", await tokenRes.text());

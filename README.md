@@ -200,6 +200,8 @@ NEXT_PUBLIC_APP_URL=https://abc123.ngrok.io
 
 In `strava.com/settings/api`, set **Authorization Callback Domain** to `abc123.ngrok.io`.
 
+**Production / Vercel:** Strava allows **only one** callback domain per API application. If that field still says `localhost` (or your old ngrok host), `redirect_uri` for `https://your-app.vercel.app/api/strava/callback` is rejected as **invalid** even when the URL is well formed. Edit the app at [strava.com/settings/api](https://www.strava.com/settings/api), set **Authorization Callback Domain** to exactly your deployment host (e.g. `pace-web-nine.vercel.app` — no `https://`, no path, no trailing slash). Local OAuth will then require ngrok again or a second Strava app for dev.
+
 To register the real-time webhook:
 
 ```bash
