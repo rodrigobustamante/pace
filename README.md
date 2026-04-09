@@ -278,12 +278,15 @@ The following backlog comes from `TASKS.md` and intentionally avoids release dat
 
 1. Fork/push to GitHub
 2. Import the project in Vercel
-3. Configure all environment variables in the Vercel dashboard
-4. Replace `DATABASE_URL` with your Supabase connection string
-5. Replace `REDIS_URL` with your Upstash URL
-6. Update `NEXT_PUBLIC_APP_URL` to your production domain
-7. Update the Strava webhook to your production URL
-8. Apply migrations: `npx prisma migrate deploy`
+3. **Root Directory must be `apps/web`.** If you leave the repo root as the project root, Vercel does not see a Next.js app (no `next` in the root `package.json`) and falls back to a **static** deploy. It then looks for a folder named `public` after the build — hence *“No Output Directory named public”* even when the Output Directory field looks empty (the placeholder is misleading).
+4. **Project Settings → General:** with Root Directory `apps/web`, Framework Preset should auto-detect **Next.js**. **Output Directory:** leave override **off** and the field **empty**. Do not force `public`.
+5. **Commands:** [`apps/web/vercel.json`](apps/web/vercel.json) sets `installCommand` and `buildCommand` so `pnpm` runs from the monorepo root (`workspace:*` and Prisma generate work). If you override these in the dashboard, keep the same idea.
+6. Configure all environment variables in the Vercel dashboard
+7. Set `DATABASE_URL` (Supabase pooler on Vercel) and `DIRECT_URL` (direct `5432` connection for migrations); locally both can match your Docker URL
+8. In [Upstash](https://console.upstash.com/) create a Redis database, copy **Redis URL** (`rediss://…`), set `REDIS_URL` in Vercel (and local `.env` if needed)
+9. Update `NEXT_PUBLIC_APP_URL` to your production domain
+10. Update the Strava webhook to your production URL
+11. Apply migrations: `npx prisma migrate deploy`
 
 ---
 
