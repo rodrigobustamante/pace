@@ -1,4 +1,12 @@
-export default function AuthError() {
+type SearchParams = Promise<{ reason?: string; status?: string }>;
+
+export default async function AuthError({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { reason, status } = await searchParams;
+
   return (
     <div
       style={{
@@ -23,8 +31,10 @@ export default function AuthError() {
         >
           Error de autenticación
         </div>
-        <div style={{ color: "#64748b", marginBottom: 24 }}>
-          No se pudo completar la conexión con Strava.
+        <div style={{ color: "#64748b", marginBottom: 24, fontSize: 13, fontFamily: "monospace" }}>
+          {reason
+            ? `reason: ${reason}${status ? ` (HTTP ${status})` : ""}`
+            : "No se pudo completar la conexión con Strava."}
         </div>
         <a
           href="/api/strava/auth"
