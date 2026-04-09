@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const error = req.nextUrl.searchParams.get("error");
 
-  console.log("[strava/callback] invoked", { hasCode: !!code, error });
+  console.log("[strava/callback] invoked", {
+    hasCode: !!code,
+    error,
+    clientIdSet: !!process.env.STRAVA_CLIENT_ID,
+    clientSecretLen: process.env.STRAVA_CLIENT_SECRET?.length ?? 0,
+  });
 
   if (error || !code) {
     console.error("[strava/callback] Strava returned error:", error ?? "no code");
