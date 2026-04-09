@@ -17,19 +17,19 @@
 
 ## Stack
 
-| Layer | Technology |
-|------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS + inline styles |
-| Charts | Recharts |
-| Client state | Zustand + TanStack React Query |
-| ORM | Prisma 5 |
-| Database | PostgreSQL 16 (local Docker / Supabase in production) |
-| Cache / Queue | Redis 7 (local Docker / Upstash in production) |
-| AI | Google Gemini 2.5 Flash |
-| Monorepo | Turborepo + pnpm workspaces |
-| Deployment | Vercel |
+| Layer         | Technology                                            |
+| ------------- | ----------------------------------------------------- |
+| Framework     | Next.js 14 (App Router)                               |
+| Language      | TypeScript (strict)                                   |
+| Styling       | Tailwind CSS + inline styles                          |
+| Charts        | Recharts                                              |
+| Client state  | Zustand + TanStack React Query                        |
+| ORM           | Prisma 5                                              |
+| Database      | PostgreSQL 16 (local Docker / Supabase in production) |
+| Cache / Queue | Redis 7 (local Docker / Upstash in production)        |
+| AI            | Google Gemini 2.5 Flash                               |
+| Monorepo      | Turborepo + pnpm workspaces                           |
+| Deployment    | Vercel                                                |
 
 ---
 
@@ -78,6 +78,7 @@ CoachInsight  # Gemini responses cached by week/activity
 ## Core algorithms
 
 **CTL / ATL / TSB** (training form model):
+
 ```
 CTL_today = CTL_yesterday + (TSS_today − CTL_yesterday) / 42   # Fitness, τ=42 days
 ATL_today = ATL_yesterday + (TSS_today − ATL_yesterday) / 7    # Fatigue, τ=7 days
@@ -85,15 +86,29 @@ TSB_today = CTL_today − ATL_today                               # Form = Fitne
 ```
 
 **HR-based TSS** (simplified Skiba method):
+
 ```
 IF  = avgHR / thresholdHR
 TSS = (durationSec × avgHR × IF) / (thresholdHR × 3600) × 100
 ```
 
 **Race predictor** (Riegel formula):
+
 ```
 T2 = T1 × (D2 / D1)^1.06
 ```
+
+**Formula sources and references:**
+
+- **CTL / ATL / TSB (impulse-response model)**  
+  Banister, E. W. et al. (1975). _A systems model of training for athletic performance_ (Australian Journal of Sports Medicine, 7:57-61).  
+  Practical review and model discussion: Morton, R. H. et al. _Assessing the limitations of the Banister model in monitoring training_. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1974899/)
+- **TSS (Training Stress Score) and IF (Intensity Factor)**  
+  Coggan, A. R., & Allen, H. (training load framework used in endurance training practice).  
+  The implementation in this project is a **simplified HR-based adaptation** inspired by endurance training models (including Skiba-style HR load approximations).  
+  Related dose-response modeling reference: Busso, T. (2003). [PubMed](https://pubmed.ncbi.nlm.nih.gov/12840641/) | DOI: `10.1249/01.MSS.0000074465.13621.37`
+- **Riegel race prediction formula**  
+  Riegel, P. S. (1981). _Athletic records and human endurance_. [PubMed](https://pubmed.ncbi.nlm.nih.gov/7235349/)
 
 ---
 
@@ -121,16 +136,16 @@ cp .env.example apps/web/.env.local
 
 Update `apps/web/.env.local` with real values:
 
-| Variable | Where to get it |
-|----------|-----------------|
-| `STRAVA_CLIENT_ID` | strava.com/settings/api |
-| `STRAVA_CLIENT_SECRET` | strava.com/settings/api |
-| `STRAVA_WEBHOOK_VERIFY_TOKEN` | `openssl rand -hex 16` |
-| `GEMINI_API_KEY` | aistudio.google.com/app/apikey |
-| `ENCRYPTION_KEY` | `openssl rand -hex 32` |
-| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `DATABASE_URL` | `postgresql://pace:pace_local_pw@localhost:5432/pace_dev` |
-| `REDIS_URL` | `redis://localhost:6379` |
+| Variable                      | Where to get it                                           |
+| ----------------------------- | --------------------------------------------------------- |
+| `STRAVA_CLIENT_ID`            | strava.com/settings/api                                   |
+| `STRAVA_CLIENT_SECRET`        | strava.com/settings/api                                   |
+| `STRAVA_WEBHOOK_VERIFY_TOKEN` | `openssl rand -hex 16`                                    |
+| `GEMINI_API_KEY`              | aistudio.google.com/app/apikey                            |
+| `ENCRYPTION_KEY`              | `openssl rand -hex 32`                                    |
+| `NEXTAUTH_SECRET`             | `openssl rand -base64 32`                                 |
+| `DATABASE_URL`                | `postgresql://pace:pace_local_pw@localhost:5432/pace_dev` |
+| `REDIS_URL`                   | `redis://localhost:6379`                                  |
 
 ### 3. Local infrastructure
 
@@ -160,6 +175,7 @@ pnpm dev
 Go to `http://localhost:3000/api/strava/auth` -> authorize -> initial sync starts in the background.
 
 To force a manual re-sync:
+
 ```bash
 curl -X POST http://localhost:3000/api/strava/sync \
   -H "Cookie: pace_user_id=<your-user-id>"
@@ -177,6 +193,7 @@ npx ngrok http 3000
 ```
 
 Update `apps/web/.env.local`:
+
 ```env
 NEXT_PUBLIC_APP_URL=https://abc123.ngrok.io
 ```
@@ -184,6 +201,7 @@ NEXT_PUBLIC_APP_URL=https://abc123.ngrok.io
 In `strava.com/settings/api`, set **Authorization Callback Domain** to `abc123.ngrok.io`.
 
 To register the real-time webhook:
+
 ```bash
 curl -X POST https://www.strava.com/api/v3/push_subscriptions \
   -F client_id=$STRAVA_CLIENT_ID \
@@ -196,17 +214,17 @@ curl -X POST https://www.strava.com/api/v3/push_subscriptions \
 
 ## API Routes
 
-| Method | Route | Description |
-|--------|------|-------------|
-| `GET` | `/api/strava/auth` | Starts the Strava OAuth flow |
-| `GET` | `/api/strava/callback` | OAuth callback, user upsert, initial sync |
-| `GET/POST` | `/api/strava/webhook` | Strava verification and event ingestion |
-| `POST` | `/api/strava/sync` | Forces a manual re-sync |
-| `GET` | `/api/activities` | Paginated list (`?page=1&limit=20`) |
-| `GET` | `/api/metrics` | CTL/ATL/TSB, weekly data, HR zones |
-| `GET` | `/api/metrics/predictions` | Race predictions (Riegel) |
-| `GET` | `/api/coach/weekly` | Weekly Gemini analysis (24h cache) |
-| `GET` | `/api/coach/activity/:id` | Per-activity Gemini analysis |
+| Method     | Route                      | Description                               |
+| ---------- | -------------------------- | ----------------------------------------- |
+| `GET`      | `/api/strava/auth`         | Starts the Strava OAuth flow              |
+| `GET`      | `/api/strava/callback`     | OAuth callback, user upsert, initial sync |
+| `GET/POST` | `/api/strava/webhook`      | Strava verification and event ingestion   |
+| `POST`     | `/api/strava/sync`         | Forces a manual re-sync                   |
+| `GET`      | `/api/activities`          | Paginated list (`?page=1&limit=20`)       |
+| `GET`      | `/api/metrics`             | CTL/ATL/TSB, weekly data, HR zones        |
+| `GET`      | `/api/metrics/predictions` | Race predictions (Riegel)                 |
+| `GET`      | `/api/coach/weekly`        | Weekly Gemini analysis (24h cache)        |
+| `GET`      | `/api/coach/activity/:id`  | Per-activity Gemini analysis              |
 
 ---
 
@@ -222,13 +240,13 @@ curl -X POST https://www.strava.com/api/v3/push_subscriptions \
 
 ## Project phases
 
-| Phase | Status | Description |
-|------|--------|-------------|
-| **0** | ✅ Done | Visual prototype with mock data (React + Recharts) |
-| **1** | ✅ Done | Monorepo setup, Strava OAuth, activity sync |
-| **2** | ✅ Done | CTL/ATL/TSB, HR zones, race predictor, metrics API |
-| **3** | ✅ Done | AI coach with Gemini 2.5 Flash, weekly and per-activity analysis |
-| **4** | 📋 Planned | Expo mobile app + Apple HealthKit integration |
+| Phase | Status     | Description                                                      |
+| ----- | ---------- | ---------------------------------------------------------------- |
+| **0** | ✅ Done    | Visual prototype with mock data (React + Recharts)               |
+| **1** | ✅ Done    | Monorepo setup, Strava OAuth, activity sync                      |
+| **2** | ✅ Done    | CTL/ATL/TSB, HR zones, race predictor, metrics API               |
+| **3** | ✅ Done    | AI coach with Gemini 2.5 Flash, weekly and per-activity analysis |
+| **4** | 📋 Planned | Expo mobile app + Apple HealthKit integration                    |
 
 ---
 
