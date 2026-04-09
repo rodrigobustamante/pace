@@ -12,8 +12,9 @@ export async function GET(req: NextRequest) {
   console.log("[strava/callback] invoked", {
     hasCode: !!code,
     error,
-    clientIdSet: !!process.env.STRAVA_CLIENT_ID,
+    clientId: process.env.STRAVA_CLIENT_ID,
     clientSecretLen: process.env.STRAVA_CLIENT_SECRET?.length ?? 0,
+    clientSecretPrefix: process.env.STRAVA_CLIENT_SECRET?.slice(0, 6),
   });
 
   if (error || !code) {
