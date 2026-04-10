@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { getAppBaseUrl } from "@/lib/appBaseUrl";
 import { prisma } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
@@ -60,8 +61,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Background sync — fire and forget
-    syncActivities(user.id).catch(console.error);
+    // Keep the function alive until sync completes
+    waitUntil(syncActivities(user.id).catch(console.error));
 
     const response = NextResponse.redirect(new URL("/dashboard", req.url));
     response.cookies.set("pace_user_id", user.id, {
