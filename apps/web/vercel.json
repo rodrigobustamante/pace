@@ -1,4 +1,4 @@
 {
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @pace/db exec prisma generate && pnpm --filter web build"
+  "buildCommand": "cd ../.. && pnpm --filter @pace/db exec prisma generate && mkdir -p apps/web/.prisma/client && find node_modules/.pnpm -name 'libquery_engine-rhel-openssl-3.0.x.so.node' -exec cp {} apps/web/.prisma/client/ \\; && pnpm --filter web build"
 }
