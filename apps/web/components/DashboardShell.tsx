@@ -187,6 +187,23 @@ export function DashboardShell({ user, children }: Props) {
               initials
             )}
           </div>
+          <form action="/api/auth/logout" method="POST">
+            <button
+              type="submit"
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 6,
+                color: "#475569",
+                fontSize: 12,
+                padding: "4px 10px",
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              Salir
+            </button>
+          </form>
         </div>
       </div>
 
