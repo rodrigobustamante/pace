@@ -69,6 +69,9 @@ export async function GET(req: NextRequest) {
     const prompt = `Athlete: ${context.userName}
 Max HR: ${context.maxHR ?? "not set"} bpm | Threshold HR: ${context.thresholdHR} bpm
 
+HR Zones (5-zone model):
+${context.zoneRanges}
+
 Current form:
 - CTL (Fitness): ${context.ctl} | ATL (Fatigue): ${context.atl} | TSB (Form): ${context.tsb}${context.tsb < -10 ? " ⚠️" : context.tsb > 5 ? " ✓" : ""}
 - Trend: ${context.tsbTrend}
@@ -76,7 +79,7 @@ Current form:
 This week (${context.weekStart} to ${context.weekEnd}):
 - Total km: ${context.weeklyKm.toFixed(1)} | Sessions: ${context.activitiesCount} | TSS: ${context.weeklyTSS}
 - Avg pace: ${context.avgPaceFormatted} min/km | Avg HR: ${context.avgHR} bpm
-- Zone distribution: ${context.zoneDistribution}
+- Zone distribution (last 90 days): ${context.zoneDistribution}
 
 Previous week: ${context.prevWeekKm.toFixed(1)} km, TSS ${context.prevWeekTSS} (volume change: ${context.volumeChangePct > 0 ? "+" : ""}${context.volumeChangePct}%)
 

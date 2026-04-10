@@ -2,6 +2,7 @@
 
 const zoneColors = ["#334155", "#3b82f6", "#22d3ee", "#f97316", "#ef4444"];
 const zoneLabels = ["Base", "Aeróbico", "Umbral", "VO2max", "Neuromuscular"];
+const zoneThresholds = [0, 0.6, 0.7, 0.8, 0.9, 1];
 
 interface ZoneDistribution {
   z1: number;
@@ -11,7 +12,21 @@ interface ZoneDistribution {
   z5: number;
 }
 
-export function HRZonesChart({ zones }: { zones: ZoneDistribution }) {
+function zoneRange(index: number, maxHR: number): string {
+  const lo = Math.round(maxHR * zoneThresholds[index]!);
+  const hi = Math.round(maxHR * zoneThresholds[index + 1]!) - 1;
+  if (index === 0) return `< ${Math.round(maxHR * 0.6)} bpm`;
+  if (index === 4) return `≥ ${Math.round(maxHR * 0.9)} bpm`;
+  return `${lo}–${hi} bpm`;
+}
+
+export function HRZonesChart({
+  zones,
+  maxHR,
+}: {
+  zones: ZoneDistribution;
+  maxHR?: number | null;
+}) {
   const values = [zones.z1, zones.z2, zones.z3, zones.z4, zones.z5];
   const total = values.reduce((s, v) => s + v, 0);
 
@@ -55,17 +70,33 @@ export function HRZonesChart({ zones }: { zones: ZoneDistribution }) {
                 display: "flex",
                 justifyContent: "space-between",
                 marginBottom: 4,
+                gap: 8,
               }}
             >
-              <span style={{ fontSize: 11, color: "#94a3b8" }}>
-                Z{i + 1}{" "}
-                <span style={{ color: "#475569" }}>· {zoneLabels[i]}</span>
-              </span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
+                <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>
+                  Z{i + 1}{" "}
+                  <span style={{ color: "#475569" }}>· {zoneLabels[i]}</span>
+                </span>
+                {maxHR && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: "#334155",
+                      fontFamily: "'DM Mono', monospace",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {zoneRange(i, maxHR)}
+                  </span>
+                )}
+              </div>
               <span
                 style={{
                   fontSize: 11,
                   fontFamily: "'DM Mono', monospace",
                   color: "#94a3b8",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {Math.round(minutes)}min{" "}

@@ -3,6 +3,7 @@ import {
   calculateFitness,
   calculateRunTSS,
   estimateThresholdHR,
+  zoneDistribution,
   secToPace,
   mToKm,
 } from "@pace/utils";
@@ -23,6 +24,7 @@ export interface WeeklyContext {
   avgPaceFormatted: string;
   avgHR: number;
   zoneDistribution: string;
+  zoneRanges: string;
   prevWeekKm: number;
   prevWeekTSS: number;
   volumeChangePct: number;
@@ -163,6 +165,31 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
       avgHR: a.avgHRbpm,
     }));
 
+  // Zone distribution — last 90 days
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const recentForZones = allActivities
+    .filter((a) => a.date >= ninetyDaysAgo)
+    .map((a) => ({ durationSec: a.durationSec, avgHRbpm: a.avgHRbpm }));
+
+  const zones = user.maxHR
+    ? zoneDistribution(recentForZones, user.maxHR)
+    : null;
+
+  const zoneDistStr = zones
+    ? `Z1 ${Math.round(zones.z1)}min, Z2 ${Math.round(zones.z2)}min, Z3 ${Math.round(zones.z3)}min, Z4 ${Math.round(zones.z4)}min, Z5 ${Math.round(zones.z5)}min`
+    : "sin datos (FC máx no configurada)";
+
+  const zoneRangesStr = user.maxHR
+    ? [
+        `Z1 Base: < ${Math.round(user.maxHR * 0.6)} bpm`,
+        `Z2 Aeróbico: ${Math.round(user.maxHR * 0.6)}–${Math.round(user.maxHR * 0.7) - 1} bpm`,
+        `Z3 Umbral: ${Math.round(user.maxHR * 0.7)}–${Math.round(user.maxHR * 0.8) - 1} bpm`,
+        `Z4 VO2max: ${Math.round(user.maxHR * 0.8)}–${Math.round(user.maxHR * 0.9) - 1} bpm`,
+        `Z5 Neuromuscular: ≥ ${Math.round(user.maxHR * 0.9)} bpm`,
+      ].join(" | ")
+    : "no disponible";
+
   return {
     userName: user.name,
     maxHR: user.maxHR,
@@ -178,7 +205,8 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
     weeklyTSS,
     avgPaceFormatted: avgPace > 0 ? secToPace(avgPace) : "—",
     avgHR,
-    zoneDistribution: "sin datos HR detallados",
+    zoneDistribution: zoneDistStr,
+    zoneRanges: zoneRangesStr,
     prevWeekKm,
     prevWeekTSS,
     volumeChangePct,

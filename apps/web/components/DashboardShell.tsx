@@ -160,6 +160,25 @@ export function DashboardShell({ user, children }: Props) {
             }}
           />
           <span style={{ fontSize: 12, color: "#475569" }}>Sincronizado</span>
+          <Link
+            href="/dashboard/settings"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: pathname === "/dashboard/settings" ? "#fb923c" : "#475569",
+              background: pathname === "/dashboard/settings" ? "rgba(249,115,22,0.1)" : "transparent",
+              fontSize: 15,
+              textDecoration: "none",
+            }}
+            title="Perfil"
+          >
+            ⚙
+          </Link>
           <div
             style={{
               width: 32,

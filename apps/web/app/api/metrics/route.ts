@@ -122,5 +122,5 @@ export async function GET() {
         )
       : null;
 
-  return NextResponse.json({ fitness, weeklyData, zones });
+  return NextResponse.json({ fitness, weeklyData, zones, maxHR: user.maxHR });
 }

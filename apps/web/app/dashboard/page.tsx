@@ -7,6 +7,7 @@ import { FitnessChart } from "@/components/charts/FitnessChart";
 import { HRZonesChart } from "@/components/charts/HRZonesChart";
 import { RadarPerformanceChart } from "@/components/charts/RadarPerformanceChart";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { HRZonesSetup } from "@/components/HRZonesSetup";
 import { secToPace, tsbLabel } from "@pace/utils";
 import Link from "next/link";
 
@@ -27,6 +28,7 @@ interface MetricsResponse {
     z4: number;
     z5: number;
   } | null;
+  maxHR: number | null;
 }
 
 interface ActivitiesResponse {
@@ -242,23 +244,9 @@ export default function DashboardPage() {
           <>
             <FitnessChart data={metrics?.fitness ?? []} />
             {metrics?.zones ? (
-              <HRZonesChart zones={metrics.zones} />
+              <HRZonesChart zones={metrics.zones} maxHR={metrics.maxHR} />
             ) : (
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 16,
-                  padding: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#475569",
-                  fontSize: 13,
-                }}
-              >
-                Configura tu FC máx para ver zonas
-              </div>
+              <HRZonesSetup currentMaxHR={metrics?.maxHR} settingsHref="/dashboard/settings" />
             )}
           </>
         )}
