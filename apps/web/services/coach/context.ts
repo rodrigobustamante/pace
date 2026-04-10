@@ -37,6 +37,156 @@ export interface WeeklyContext {
   }>;
 }
 
+export interface DailyContext {
+  userName: string;
+  maxHR: number | null;
+  thresholdHR: number;
+  todayDate: string;
+  dayOfWeek: string;
+  ctl: number;
+  atl: number;
+  tsb: number;
+  tsbTrend: "improving" | "declining" | "stable";
+  weekSessionsCount: number;
+  weeklyKm: number;
+  weeklyTSS: number;
+  weekSessionTypes: string;
+  daysSinceLastRun: number;
+  lastActivity: {
+    date: string;
+    name: string;
+    type: string;
+    km: string;
+    pace: string;
+    avgHR: number | null;
+    tss: number | null;
+    daysAgo: number;
+  } | null;
+  consecutiveRunDays: number;
+}
+
+export async function buildDailyContext(userId: string): Promise<DailyContext> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const thresholdHR = user.maxHR ? estimateThresholdHR(user.maxHR) : 160;
+
+  const allActivities = await prisma.activity.findMany({
+    where: { userId },
+    orderBy: { date: "asc" },
+    select: {
+      date: true,
+      durationSec: true,
+      distanceM: true,
+      paceSeckm: true,
+      avgHRbpm: true,
+      tss: true,
+      name: true,
+      type: true,
+    },
+  });
+
+  // CTL/ATL/TSB
+  const dailyTSSMap = new Map<string, number>();
+  for (const act of allActivities) {
+    const dateKey = act.date.toISOString().split("T")[0]!;
+    let tss = act.tss;
+    if (tss == null && act.avgHRbpm) {
+      tss = calculateRunTSS(act.durationSec, act.avgHRbpm, thresholdHR);
+    }
+    dailyTSSMap.set(dateKey, (dailyTSSMap.get(dateKey) ?? 0) + (tss ?? 0));
+  }
+  const dailyLoads = Array.from(dailyTSSMap.entries()).map(([date, tss]) => ({ date, tss }));
+  const fitness = calculateFitness(dailyLoads);
+  const latest = fitness[fitness.length - 1];
+  const prev = fitness[fitness.length - 2];
+
+  const ctl = latest?.ctl ?? 0;
+  const atl = latest?.atl ?? 0;
+  const tsb = latest?.tsb ?? 0;
+  const tsbTrend: DailyContext["tsbTrend"] =
+    prev == null ? "stable"
+    : tsb - prev.tsb > 1 ? "improving"
+    : tsb - prev.tsb < -1 ? "declining"
+    : "stable";
+
+  // This week (Mon–today)
+  const now = new Date();
+  const dayOfWeekNum = now.getDay();
+  const mondayOffset = dayOfWeekNum === 0 ? -6 : 1 - dayOfWeekNum;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+
+  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const dayOfWeek = dayNames[dayOfWeekNum]!;
+
+  const thisWeekActs = allActivities.filter((a) => a.date >= weekStart);
+
+  const weeklyKm = thisWeekActs.reduce((s, a) => s + a.distanceM / 1000, 0);
+  const weeklyTSS = Math.round(
+    thisWeekActs.reduce((s, a) => {
+      const tss = a.tss ?? (a.avgHRbpm ? calculateRunTSS(a.durationSec, a.avgHRbpm, thresholdHR) : 0);
+      return s + tss;
+    }, 0),
+  );
+
+  const typeCount = new Map<string, number>();
+  for (const a of thisWeekActs) {
+    typeCount.set(a.type, (typeCount.get(a.type) ?? 0) + 1);
+  }
+  const weekSessionTypes = Array.from(typeCount.entries())
+    .map(([type, count]) => `${count}x ${type}`)
+    .join(", ") || "ninguna";
+
+  // Last activity
+  const lastAct = allActivities[allActivities.length - 1] ?? null;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysAgo = lastAct
+    ? Math.floor((now.getTime() - lastAct.date.getTime()) / msPerDay)
+    : 999;
+
+  const lastActivity = lastAct
+    ? {
+        date: lastAct.date.toISOString().split("T")[0]!,
+        name: lastAct.name,
+        type: lastAct.type,
+        km: mToKm(lastAct.distanceM),
+        pace: secToPace(lastAct.paceSeckm),
+        avgHR: lastAct.avgHRbpm,
+        tss: lastAct.tss ?? (lastAct.avgHRbpm ? Math.round(calculateRunTSS(lastAct.durationSec, lastAct.avgHRbpm, thresholdHR)) : null),
+        daysAgo,
+      }
+    : null;
+
+  // Consecutive run days (looking back from yesterday)
+  const activeDays = new Set(allActivities.map((a) => a.date.toISOString().split("T")[0]!));
+  let consecutiveRunDays = 0;
+  const check = new Date(now);
+  check.setDate(check.getDate() - 1);
+  while (activeDays.has(check.toISOString().split("T")[0]!)) {
+    consecutiveRunDays++;
+    check.setDate(check.getDate() - 1);
+  }
+
+  return {
+    userName: user.name,
+    maxHR: user.maxHR,
+    thresholdHR,
+    todayDate: now.toISOString().split("T")[0]!,
+    dayOfWeek,
+    ctl: Math.round(ctl),
+    atl: Math.round(atl),
+    tsb: Math.round(tsb),
+    tsbTrend,
+    weekSessionsCount: thisWeekActs.length,
+    weeklyKm,
+    weeklyTSS,
+    weekSessionTypes,
+    daysSinceLastRun: daysAgo,
+    lastActivity,
+    consecutiveRunDays,
+  };
+}
+
 export async function buildWeeklyContext(userId: string): Promise<WeeklyContext> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 

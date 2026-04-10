@@ -1,6 +1,7 @@
 "use client";
 
 import { useCoachStream } from "@/hooks/useCoachStream";
+import { useDailyCoach } from "@/hooks/useDailyCoach";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { useEffect, useState } from "react";
@@ -48,6 +49,151 @@ function StaggeredCard({
       }}
     >
       {children}
+    </div>
+  );
+}
+
+const SESSION_TYPE_LABELS: Record<string, string> = {
+  easy: "Rodaje suave",
+  tempo: "Tempo",
+  long: "Tirada larga",
+  workout: "Series",
+};
+
+function DailyAdviceCard() {
+  const { advice, isLoading, error, refetch } = useDailyCoach();
+
+  const isRest = advice?.recommendation === "rest";
+  const accentColor = isRest ? "#60a5fa" : "#4ade80";
+  const bgColor = isRest ? "rgba(96,165,250,0.08)" : "rgba(74,222,128,0.08)";
+  const borderColor = isRest ? "rgba(96,165,250,0.2)" : "rgba(74,222,128,0.2)";
+  const icon = isRest ? "😴" : "🏃";
+
+  return (
+    <div
+      style={{
+        background: bgColor,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 16,
+        padding: 24,
+        marginBottom: 24,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: isLoading || error || !advice ? 0 : 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: accentColor, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            Consejo del día
+          </span>
+        </div>
+        {!isLoading && (
+          <button
+            onClick={() => refetch()}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#475569",
+              fontSize: 12,
+              cursor: "pointer",
+              padding: "2px 6px",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            ↻
+          </button>
+        )}
+      </div>
+
+      {isLoading && (
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              border: "2px solid #334155",
+              borderTopColor: "#60a5fa",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontSize: 13, color: "#475569" }}>Analizando tu forma actual...</span>
+        </div>
+      )}
+
+      {error && !isLoading && (
+        <div style={{ fontSize: 13, color: "#f87171" }}>{error}</div>
+      )}
+
+      {advice && !isLoading && (
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <div style={{ fontSize: 32, flexShrink: 0 }}>{icon}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9", marginBottom: 6 }}>
+              {advice.title}
+            </div>
+            <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.7, marginBottom: advice.duration || advice.intensity ? 12 : 0 }}>
+              {advice.body}
+            </div>
+            {(advice.sessionType || advice.duration || advice.intensity) && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {advice.sessionType && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: accentColor,
+                      background: `${accentColor}18`,
+                      border: `1px solid ${accentColor}30`,
+                      borderRadius: 6,
+                      padding: "3px 8px",
+                      fontFamily: "'DM Mono', monospace",
+                    }}
+                  >
+                    {SESSION_TYPE_LABELS[advice.sessionType] ?? advice.sessionType}
+                  </span>
+                )}
+                {advice.duration && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#64748b",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 6,
+                      padding: "3px 8px",
+                      fontFamily: "'DM Mono', monospace",
+                    }}
+                  >
+                    {advice.duration}
+                  </span>
+                )}
+                {advice.intensity && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#64748b",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 6,
+                      padding: "3px 8px",
+                      fontFamily: "'DM Mono', monospace",
+                    }}
+                  >
+                    {advice.intensity}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -131,6 +277,8 @@ export default function CoachPage() {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
       `}</style>
+
+      <DailyAdviceCard />
 
       {error && (
         <div
