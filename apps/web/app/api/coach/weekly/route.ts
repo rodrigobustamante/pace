@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       model: "gemini-2.5-flash",
       systemInstruction: COACH_SYSTEM_PROMPT,
       generationConfig: {
-        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
         temperature: 0.4,
       },
     });

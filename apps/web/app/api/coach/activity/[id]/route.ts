@@ -89,7 +89,7 @@ Generate the activity analysis in JSON.`;
     model: "gemini-2.5-flash",
     systemInstruction: ACTIVITY_COACH_SYSTEM_PROMPT,
     generationConfig: {
-      maxOutputTokens: 800,
+      responseMimeType: "application/json",
       temperature: 0.35,
     },
   });
