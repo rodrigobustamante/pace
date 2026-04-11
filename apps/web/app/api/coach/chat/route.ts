@@ -99,8 +99,8 @@ ${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a
         // Persist updated history (trim to MAX_HISTORY_TURNS)
         const newHistory: HistoryTurn[] = [
           ...history,
-          { role: "user", parts: [{ text: message }] },
-          { role: "model", parts: [{ text: fullResponse }] },
+          { role: "user" as const, parts: [{ text: message }] },
+          { role: "model" as const, parts: [{ text: fullResponse }] },
         ].slice(-MAX_HISTORY_TURNS);
 
         await redis.setex(key, HISTORY_TTL, JSON.stringify(newHistory));
