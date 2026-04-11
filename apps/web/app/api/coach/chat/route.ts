@@ -12,7 +12,7 @@ const MAX_HISTORY_TURNS = 20; // keep last 20 turns (10 exchanges)
 type GeminiRole = "user" | "model";
 interface HistoryTurn {
   role: GeminiRole;
-  parts: [{ text: string }];
+  parts: { text: string }[];
 }
 
 function historyKey(userId: string, conversationId: string) {
