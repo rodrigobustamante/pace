@@ -38,7 +38,7 @@ export function DashboardShell({ user, children }: Props) {
         background: "#060d1a",
         color: "#f1f5f9",
         fontFamily: "'DM Sans', sans-serif",
-        paddingBottom: 60,
+        paddingBottom: 0,
       }}
     >
       <style>{`
@@ -59,13 +59,66 @@ export function DashboardShell({ user, children }: Props) {
         .fade-up-3 { animation-delay: 0.19s; opacity: 0; }
         .fade-up-4 { animation-delay: 0.26s; opacity: 0; }
         .fade-up-5 { animation-delay: 0.33s; opacity: 0; }
+
+        /* ── Responsive layout classes ── */
+        .rg-4   { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+        .rg-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .rg-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .rg-3-2 { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 20px; }
+
+        /* bottom nav hidden on desktop */
+        .bottom-nav { display: none; }
+
+        /* activity row stats */
+        .act-stats-mini { display: none; }
+
+        /* header padding as CSS so media query can override */
+        .header-inner { padding: 0 32px; }
+        .content-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 32px 0; }
+
+        /* hero title */
+        .hero-title { font-size: 40px; font-weight: 900; font-family: 'Barlow Condensed', sans-serif; letter-spacing: -0.02em; }
+
+        /* activity expand grid */
+        .act-expand-grid { grid-template-columns: repeat(4,1fr); }
+
+        /* insight cards grid (coach page) */
+        .rg-insight { gap: 16px; margin-bottom: 0; }
+
+        @media (max-width: 639px) {
+          .rg-4   { grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+          .rg-2   { grid-template-columns: 1fr; }
+          .rg-2-1 { grid-template-columns: 1fr; }
+          .rg-3-2 { grid-template-columns: 1fr; }
+
+          .header-nav  { display: none !important; }
+          .header-sync { display: none !important; }
+
+          .content-wrap { padding: 20px 16px 88px !important; }
+          .header-inner { padding: 0 16px !important; }
+
+          .bottom-nav { display: flex !important; }
+
+          .hero-title  { font-size: 26px !important; letter-spacing: -0.01em !important; }
+          .coach-banner-inner { flex-direction: column !important; gap: 12px !important; }
+          .coach-banner-btn   { margin-left: 0 !important; }
+
+          /* activity row: hide full stats, show mini */
+          .act-stats-full { display: none !important; }
+          .act-stats-mini { display: flex !important; gap: 16px; }
+
+          /* activity expanded detail */
+          .act-expand-grid { grid-template-columns: repeat(2,1fr) !important; }
+
+          /* insight cards */
+          .rg-insight { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       {/* HEADER */}
       <div
         style={{
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          padding: "0 32px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -76,6 +129,7 @@ export function DashboardShell({ user, children }: Props) {
           background: "rgba(6,13,26,0.92)",
           backdropFilter: "blur(16px)",
         }}
+        className="header-inner"
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
@@ -116,7 +170,7 @@ export function DashboardShell({ user, children }: Props) {
           </div>
         </div>
 
-        <nav style={{ display: "flex", gap: 4 }}>
+        <nav className="header-nav" style={{ display: "flex", gap: 4 }}>
           {tabs.map((t) => (
             <Link
               key={t.id}
@@ -150,16 +204,18 @@ export function DashboardShell({ user, children }: Props) {
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#4ade80",
-              boxShadow: "0 0 8px #4ade80",
-            }}
-          />
-          <span style={{ fontSize: 12, color: "#475569" }}>Sincronizado</span>
+          <div className="header-sync" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#4ade80",
+                boxShadow: "0 0 8px #4ade80",
+              }}
+            />
+            <span style={{ fontSize: 12, color: "#475569" }}>Sincronizado</span>
+          </div>
           <Link
             href="/dashboard/settings"
             style={{
@@ -226,11 +282,63 @@ export function DashboardShell({ user, children }: Props) {
         </div>
       </div>
 
-      <div
-        style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 0" }}
-      >
+      {/* CONTENT */}
+      <div className="content-wrap">
         {children}
       </div>
+
+      {/* BOTTOM NAV — mobile only */}
+      <nav
+        className="bottom-nav"
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          background: "rgba(6,13,26,0.96)",
+          backdropFilter: "blur(16px)",
+          borderTop: "1px solid rgba(255,255,255,0.07)",
+          justifyContent: "space-around",
+          alignItems: "stretch",
+          height: 64,
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {tabs.map((t) => {
+          const icons: Record<string, string> = {
+            overview: "🏠",
+            activities: "📋",
+            metrics: "📊",
+            coach: "🤖",
+          };
+          const isActive = activeTab === t.id;
+          return (
+            <Link
+              key={t.id}
+              href={t.href}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 3,
+                flex: 1,
+                textDecoration: "none",
+                color: isActive ? "#fb923c" : "#475569",
+                transition: "color 0.15s",
+                borderTop: isActive ? "2px solid #fb923c" : "2px solid transparent",
+                paddingTop: 2,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>{icons[t.id]}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.04em" }}>
+                {t.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

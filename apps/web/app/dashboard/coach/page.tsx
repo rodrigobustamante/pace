@@ -3,6 +3,7 @@
 import { useCoachStream } from "@/hooks/useCoachStream";
 import { useDailyCoach } from "@/hooks/useDailyCoach";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
+import { CoachChat } from "@/components/CoachChat";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { useEffect, useState } from "react";
 
@@ -348,9 +349,7 @@ export default function CoachPage() {
               </div>
             </div>
           </div>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
-          >
+          <div className="rg-2 rg-insight">
             {[...Array(4)].map((_, i) => (
               <SkeletonCard key={i} height={120} />
             ))}
@@ -399,13 +398,7 @@ export default function CoachPage() {
           </div>
 
           {/* Staggered insight cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 16,
-            }}
-          >
+          <div className="rg-2 rg-insight">
             {insightCards.map((card, i) => (
               <StaggeredCard key={card.type} index={i}>
                 <CoachInsightCard
@@ -436,6 +429,23 @@ export default function CoachPage() {
             <span style={{ fontSize: 11, color: "#334155", fontFamily: "'DM Mono', monospace" }}>
               gemini-2.5-flash
             </span>
+          </div>
+
+          {/* Chat */}
+          <div style={{ marginTop: 32 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#475569",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                marginBottom: 12,
+              }}
+            >
+              Pregúntale a tu coach
+            </div>
+            <CoachChat />
           </div>
         </>
       ) : !error ? (

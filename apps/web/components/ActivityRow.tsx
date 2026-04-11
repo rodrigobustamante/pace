@@ -125,7 +125,8 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
           </div>
           <div style={{ fontSize: 11, color: "#475569" }}>{dateStr}</div>
         </div>
-        <div style={{ display: "flex", gap: 32, textAlign: "right" }}>
+        {/* Desktop: all 4 stats */}
+        <div className="act-stats-full" style={{ display: "flex", gap: 32, textAlign: "right" }}>
           {[
             { v: `${mToKm(act.distanceM)} km`, l: "Distancia" },
             { v: secToPace(act.paceSeckm) + "/km", l: "Pace" },
@@ -184,6 +185,21 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
             </div>
           )}
         </div>
+
+        {/* Mobile: distance + pace only */}
+        <div className="act-stats-mini" style={{ textAlign: "right", gap: 16 }}>
+          {[
+            { v: `${mToKm(act.distanceM)} km`, l: "Dist" },
+            { v: secToPace(act.paceSeckm), l: "Pace" },
+          ].map((m) => (
+            <div key={m.l}>
+              <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif", color: "#f1f5f9" }}>
+                {m.v}
+              </div>
+              <div style={{ fontSize: 10, color: "#475569" }}>{m.l}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {expanded && (
@@ -193,9 +209,9 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
             paddingTop: 16,
             borderTop: "1px solid rgba(255,255,255,0.06)",
             display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
             gap: 12,
           }}
+          className="act-expand-grid"
         >
           {[
             { l: "Duración", v: secToDuration(act.durationSec) },

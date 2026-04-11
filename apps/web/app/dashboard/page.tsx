@@ -130,29 +130,14 @@ export default function DashboardPage() {
         >
           Esta semana · {today}
         </div>
-        <div
-          style={{
-            fontSize: 40,
-            fontWeight: 900,
-            fontFamily: "'Barlow Condensed', sans-serif",
-            letterSpacing: "-0.02em",
-          }}
-        >
+        <div className="hero-title">
           Buenos días,{" "}
           <span style={{ color: "#fb923c" }}>corredor</span>
         </div>
       </div>
 
       {/* KPI Row */}
-      <div
-        className="fade-up fade-up-2"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 16,
-          marginBottom: 28,
-        }}
-      >
+      <div className="fade-up fade-up-2 rg-4">
         {loadingMetrics || loadingActivities ? (
           <>
             <SkeletonCard height={100} />
@@ -203,15 +188,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div
-        className="fade-up fade-up-3"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: 20,
-          marginBottom: 20,
-        }}
-      >
+      <div className="fade-up fade-up-3 rg-2-1">
         {loadingMetrics ? (
           <>
             <SkeletonCard height={260} />
@@ -226,15 +203,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Fitness + Zones */}
-      <div
-        className="fade-up fade-up-4"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "3fr 2fr",
-          gap: 20,
-          marginBottom: 20,
-        }}
-      >
+      <div className="fade-up fade-up-4 rg-3-2">
         {loadingMetrics ? (
           <>
             <SkeletonCard height={260} />
@@ -260,44 +229,41 @@ export default function DashboardPage() {
           border: "1px solid rgba(249,115,22,0.2)",
           borderRadius: 16,
           padding: "16px 24px",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
         }}
       >
-        <div style={{ fontSize: 28 }}>🤖</div>
-        <div>
-          <div
-            style={{ fontSize: 13, fontWeight: 600, color: "#fb923c", marginBottom: 2 }}
-          >
-            Coach IA · Análisis disponible
+        <div
+          className="coach-banner-inner"
+          style={{ display: "flex", alignItems: "center", gap: 16 }}
+        >
+          <div style={{ fontSize: 28 }}>🤖</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#fb923c", marginBottom: 2 }}>
+              Coach IA · Análisis disponible
+            </div>
+            <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>
+              Obtén tu análisis semanal personalizado basado en tus datos reales de Strava.
+            </div>
           </div>
-          <div
-            style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}
-          >
-            Obtén tu análisis semanal personalizado basado en tus datos reales
-            de Strava.
+          <div className="coach-banner-btn" style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>
+            <Link
+              href="/dashboard/coach"
+              style={{
+                background: "rgba(249,115,22,0.2)",
+                border: "1px solid rgba(249,115,22,0.3)",
+                borderRadius: 8,
+                padding: "8px 16px",
+                color: "#fb923c",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              Ver análisis →
+            </Link>
           </div>
-        </div>
-        <div style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>
-          <Link
-            href="/dashboard/coach"
-            style={{
-              background: "rgba(249,115,22,0.2)",
-              border: "1px solid rgba(249,115,22,0.3)",
-              borderRadius: 8,
-              padding: "8px 16px",
-              color: "#fb923c",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              textDecoration: "none",
-              display: "inline-block",
-            }}
-          >
-            Ver análisis →
-          </Link>
         </div>
       </div>
     </div>

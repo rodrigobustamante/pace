@@ -63,17 +63,13 @@ export default function MetricsPage() {
       </div>
 
       {isLoading || loadingPred ? (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
-        >
+        <div className="rg-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonCard key={i} height={260} />
           ))}
         </div>
       ) : (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
-        >
+        <div className="rg-2">
           <PaceEvolutionChart data={weeklyData} />
           <HREvolutionChart data={weeklyData} />
           <LoadChart data={weeklyData} />
