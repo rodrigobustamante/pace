@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { HRZonesSetup } from "@/components/HRZonesSetup";
+import { SyncButton } from "@/components/SyncButton";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -89,6 +90,16 @@ export default async function SettingsPage() {
             Frecuencia cardíaca
           </div>
           <HRZonesSetup currentMaxHR={user?.maxHR} />
+        </div>
+
+        {/* Sync */}
+        <div
+          style={{
+            padding: "20px 24px",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <SyncButton />
         </div>
       </div>
     </div>
