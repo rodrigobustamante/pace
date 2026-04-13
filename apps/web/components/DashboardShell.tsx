@@ -33,12 +33,12 @@ export function DashboardShell({ user, children }: Props) {
 
   return (
     <div
+      className="shell-root"
       style={{
         minHeight: "100vh",
         background: "#060d1a",
         color: "#f1f5f9",
         fontFamily: "'DM Sans', sans-serif",
-        paddingBottom: 0,
       }}
     >
       <style>{`
@@ -86,6 +86,32 @@ export function DashboardShell({ user, children }: Props) {
         .rg-insight { gap: 16px; margin-bottom: 0; }
 
         @media (max-width: 639px) {
+          /* ── Shell: flex column layout — no position:fixed needed ── */
+          .shell-root {
+            height: 100dvh !important;
+            min-height: unset !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+          }
+          .header-inner {
+            flex-shrink: 0;
+            position: static !important;
+            padding: 0 16px !important;
+          }
+          .content-wrap {
+            flex: 1 !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            padding: 20px 16px 24px !important;
+          }
+          .bottom-nav {
+            display: flex !important;
+            flex-shrink: 0;
+            position: static !important;
+          }
+
+          /* ── Grids ── */
           .rg-4   { grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
           .rg-2   { grid-template-columns: 1fr; }
           .rg-2-1 { grid-template-columns: 1fr; }
@@ -94,23 +120,13 @@ export function DashboardShell({ user, children }: Props) {
           .header-nav  { display: none !important; }
           .header-sync { display: none !important; }
 
-          .content-wrap { padding: 20px 16px 88px !important; }
-          .header-inner { padding: 0 16px !important; }
-
-          .bottom-nav { display: flex !important; }
-
           .hero-title  { font-size: 26px !important; letter-spacing: -0.01em !important; }
           .coach-banner-inner { flex-direction: column !important; gap: 12px !important; }
           .coach-banner-btn   { margin-left: 0 !important; }
 
-          /* activity row: hide full stats, show mini */
           .act-stats-full { display: none !important; }
           .act-stats-mini { display: flex !important; gap: 16px; }
-
-          /* activity expanded detail */
           .act-expand-grid { grid-template-columns: repeat(2,1fr) !important; }
-
-          /* insight cards */
           .rg-insight { grid-template-columns: 1fr !important; }
         }
       `}</style>
@@ -291,13 +307,7 @@ export function DashboardShell({ user, children }: Props) {
       <nav
         className="bottom-nav"
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
           background: "rgba(6,13,26,0.96)",
-          backdropFilter: "blur(16px)",
           borderTop: "1px solid rgba(255,255,255,0.07)",
           justifyContent: "space-around",
           alignItems: "stretch",
