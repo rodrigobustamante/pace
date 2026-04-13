@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CustomTooltip } from "@/components/CustomTooltip";
+import * as c from "@/styles/chartCard.css";
 
 interface WeeklyData {
   week: string;
@@ -18,35 +19,10 @@ interface WeeklyData {
 
 export function VolumeChart({ data }: { data: WeeklyData[] }) {
   return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 16,
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "#64748b",
-          marginBottom: 4,
-          fontFamily: "'DM Mono', monospace",
-        }}
-      >
-        Volumen semanal
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          fontFamily: "'Barlow Condensed', sans-serif",
-          marginBottom: 20,
-        }}
-      >
-        km <span style={{ color: "#fb923c" }}>↑ tendencia</span>
+    <div className={c.root}>
+      <div className={c.kicker}>Volumen semanal</div>
+      <div className={c.title}>
+        km <span className={c.accentOrange}>↑ tendencia</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data}>

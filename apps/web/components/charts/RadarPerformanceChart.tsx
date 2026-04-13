@@ -7,6 +7,7 @@ import {
   PolarAngleAxis,
   ResponsiveContainer,
 } from "recharts";
+import * as c from "@/styles/chartCard.css";
 
 interface RadarData {
   metric: string;
@@ -15,36 +16,9 @@ interface RadarData {
 
 export function RadarPerformanceChart({ data }: { data: RadarData[] }) {
   return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 16,
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "#64748b",
-          marginBottom: 4,
-          fontFamily: "'DM Mono', monospace",
-        }}
-      >
-        Perfil atlético
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          fontFamily: "'Barlow Condensed', sans-serif",
-          marginBottom: 8,
-        }}
-      >
-        Balance
-      </div>
+    <div className={c.root}>
+      <div className={c.kicker}>Perfil atlético</div>
+      <div className={c.titleMb8}>Balance</div>
       <ResponsiveContainer width="100%" height={180}>
         <RadarChart data={data}>
           <PolarGrid stroke="rgba(255,255,255,0.08)" />

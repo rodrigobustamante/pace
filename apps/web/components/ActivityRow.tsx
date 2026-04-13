@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { secToPace, secToDuration, mToKm } from "@pace/utils";
+import * as styles from "@/styles/activityRow.css";
+import * as grid from "@/styles/dashboardGrid.css";
 
 interface Activity {
   id: string;
@@ -66,67 +68,33 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
 
   return (
     <div
-      className="activity-row"
+      className={styles.row}
+      data-expanded={expanded ? "true" : "false"}
       onClick={() => setExpanded(!expanded)}
-      style={{
-        background: expanded
-          ? "rgba(255,255,255,0.06)"
-          : "rgba(255,255,255,0.02)",
-        border: `1px solid ${expanded ? "rgba(249,115,22,0.3)" : "rgba(255,255,255,0.06)"}`,
-        borderRadius: 12,
-        padding: "16px 20px",
-        transition: "all 0.15s",
-        cursor: "pointer",
-      }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className={styles.rowInner}>
         <div
+          className={styles.typeIcon}
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
             background: cfg.bg,
             border: `1px solid ${cfg.color}30`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 18,
-            flexShrink: 0,
           }}
         >
           🏃
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 2,
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>
-              {act.name}
-            </span>
+        <div className={styles.mainCol}>
+          <div className={styles.titleRow}>
+            <span className={styles.title}>{act.name}</span>
             <span
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                padding: "2px 8px",
-                borderRadius: 20,
-                background: cfg.bg,
-                color: cfg.color,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
+              className={styles.typeBadge}
+              style={{ background: cfg.bg, color: cfg.color }}
             >
               {cfg.label}
             </span>
           </div>
-          <div style={{ fontSize: 11, color: "#475569" }}>{dateStr}</div>
+          <div className={styles.dateLine}>{dateStr}</div>
         </div>
-        {/* Desktop: all 4 stats */}
-        <div className="act-stats-full" style={{ display: "flex", gap: 32, textAlign: "right" }}>
+        <div className={grid.actStatsFull}>
           {[
             { v: `${mToKm(act.distanceM)} km`, l: "Distancia" },
             { v: secToPace(act.paceSeckm) + "/km", l: "Pace" },
@@ -139,38 +107,19 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
               l: "Cadencia",
             },
           ].map((m) => (
-            <div key={m.l} style={{ minWidth: 70 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                  color: "#f1f5f9",
-                }}
-              >
-                {m.v}
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "#475569",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {m.l}
-              </div>
+            <div key={m.l} className={styles.statCol}>
+              <div className={styles.statValue}>{m.v}</div>
+              <div className={styles.statLabel}>{m.l}</div>
             </div>
           ))}
           {act.feel != null && (
             <div style={{ minWidth: 50 }}>
-              <div style={{ display: "flex", gap: 2 }}>
+              <div className={styles.feelDots}>
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div
                     key={s}
+                    className={styles.feelDot}
                     style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 2,
                       background:
                         s <= (act.feel ?? 0)
                           ? "#fb923c"
@@ -179,40 +128,26 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
                   />
                 ))}
               </div>
-              <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>
-                Sensación
-              </div>
+              <div className={styles.feelLabel}>Sensación</div>
             </div>
           )}
         </div>
 
-        {/* Mobile: distance + pace only */}
-        <div className="act-stats-mini" style={{ textAlign: "right", gap: 16 }}>
+        <div className={grid.actStatsMini}>
           {[
             { v: `${mToKm(act.distanceM)} km`, l: "Dist" },
             { v: secToPace(act.paceSeckm), l: "Pace" },
           ].map((m) => (
             <div key={m.l}>
-              <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif", color: "#f1f5f9" }}>
-                {m.v}
-              </div>
-              <div style={{ fontSize: 10, color: "#475569" }}>{m.l}</div>
+              <div className={styles.statValueSm}>{m.v}</div>
+              <div className={styles.statLabel}>{m.l}</div>
             </div>
           ))}
         </div>
       </div>
 
       {expanded && (
-        <div
-          style={{
-            marginTop: 16,
-            paddingTop: 16,
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-            display: "grid",
-            gap: 12,
-          }}
-          className="act-expand-grid"
-        >
+        <div className={`${styles.expandSection} ${grid.actExpandGrid}`}>
           {[
             { l: "Duración", v: secToDuration(act.durationSec) },
             {
@@ -228,26 +163,9 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
               v: act.maxHRbpm ? `${act.maxHRbpm} bpm` : "—",
             },
           ].map((m) => (
-            <div
-              key={m.l}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                borderRadius: 8,
-                padding: "10px 14px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                }}
-              >
-                {m.v}
-              </div>
-              <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>
-                {m.l}
-              </div>
+            <div key={m.l} className={styles.expandCell}>
+              <div className={styles.expandValue}>{m.v}</div>
+              <div className={styles.expandLabel}>{m.l}</div>
             </div>
           ))}
         </div>

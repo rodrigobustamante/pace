@@ -1,3 +1,5 @@
+import * as styles from "@/styles/customTooltip.css";
+
 interface TooltipPayloadItem {
   color: string;
   name: string;
@@ -19,21 +21,8 @@ export function CustomTooltip({
 }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div
-      style={{
-        background: "#0f172a",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 10,
-        padding: "10px 14px",
-        fontSize: 12,
-        color: "#94a3b8",
-      }}
-    >
-      <div
-        style={{ color: "#f1f5f9", marginBottom: 4, fontWeight: 600 }}
-      >
-        {label}
-      </div>
+    <div className={styles.root}>
+      <div className={styles.label}>{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color: p.color }}>
           {p.name}:{" "}

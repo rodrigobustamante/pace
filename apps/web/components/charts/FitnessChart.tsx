@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CustomTooltip } from "@/components/CustomTooltip";
+import * as c from "@/styles/chartCard.css";
 
 interface FitnessPoint {
   date: string;
@@ -23,39 +24,10 @@ export function FitnessChart({ data }: { data: FitnessPoint[] }) {
   const displayData = data.slice(-60);
 
   return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 16,
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "#64748b",
-          marginBottom: 4,
-          fontFamily: "'DM Mono', monospace",
-        }}
-      >
-        Forma deportiva
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          fontFamily: "'Barlow Condensed', sans-serif",
-          marginBottom: 4,
-        }}
-      >
-        CTL · ATL · TSB
-      </div>
-      <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>
-        Fitness · Fatiga · Forma
-      </div>
+    <div className={c.root}>
+      <div className={c.kicker}>Forma deportiva</div>
+      <div className={c.titleMb4}>CTL · ATL · TSB</div>
+      <div className={c.chartCaption}>Fitness · Fatiga · Forma</div>
       <ResponsiveContainer width="100%" height={160}>
         <LineChart data={displayData}>
           <CartesianGrid

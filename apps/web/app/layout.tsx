@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, DM_Sans, DM_Mono } from "next/font/google";
-import "./globals.css";
+import "@/styles/global.css";
 import { Providers } from "@/lib/providers";
 
 const barlowCondensed = Barlow_Condensed({
-  weight: ["400", "600", "700", "900"],
+  weight: ["400", "600", "700"],
   subsets: ["latin"],
   variable: "--font-barlow",
   display: "swap",
@@ -39,7 +39,7 @@ export default function RootLayout({
       lang="es"
       className={`${barlowCondensed.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
-      <body style={{ margin: 0, padding: 0 }}>
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>

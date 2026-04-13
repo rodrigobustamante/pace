@@ -1,3 +1,6 @@
+import { assignInlineVars } from "@vanilla-extract/dynamic";
+import * as styles from "@/styles/coachInsightCard.css";
+
 interface CoachInsightCardProps {
   type: "warning" | "positive" | "tip" | "prediction";
   title: string;
@@ -24,32 +27,18 @@ export function CoachInsightCard({ type, title, body }: CoachInsightCardProps) {
 
   return (
     <div
-      className="insight-card"
-      style={{
-        background: colors.glow,
-        border: `1px solid ${colors.border}40`,
-        borderRadius: 16,
-        padding: 24,
-      }}
+      className={styles.root}
+      style={assignInlineVars({
+        [styles.borderColorVar]: `${colors.border}40`,
+        [styles.glowVar]: colors.glow,
+        [styles.titleColorVar]: colors.border,
+      })}
     >
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <div style={{ fontSize: 28, flexShrink: 0 }}>{icon}</div>
+      <div className={styles.row}>
+        <div className={styles.icon}>{icon}</div>
         <div>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: colors.border,
-              marginBottom: 6,
-            }}
-          >
-            {title}
-          </div>
-          <div
-            style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6 }}
-          >
-            {body}
-          </div>
+          <div className={styles.title}>{title}</div>
+          <div className={styles.body}>{body}</div>
         </div>
       </div>
     </div>

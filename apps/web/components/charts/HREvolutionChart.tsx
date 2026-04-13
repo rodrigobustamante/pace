@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CustomTooltip } from "@/components/CustomTooltip";
+import * as c from "@/styles/chartCard.css";
 
 interface WeeklyData {
   week: string;
@@ -18,35 +19,10 @@ interface WeeklyData {
 
 export function HREvolutionChart({ data }: { data: WeeklyData[] }) {
   return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 16,
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          color: "#94a3b8",
-          marginBottom: 4,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        FC Promedio
-      </div>
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 800,
-          fontFamily: "'Barlow Condensed', sans-serif",
-          marginBottom: 16,
-        }}
-      >
-        Ritmo cardíaco <span style={{ color: "#4ade80" }}>estable</span>
+    <div className={c.root}>
+      <div className={c.kickerAlt}>FC Promedio</div>
+      <div className={c.titleLg}>
+        Ritmo cardíaco <span className={c.accentGreen}>estable</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data}>

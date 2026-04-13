@@ -10,6 +10,8 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { HRZonesSetup } from "@/components/HRZonesSetup";
 import { secToPace, tsbLabel } from "@pace/utils";
 import Link from "next/link";
+import * as grid from "@/styles/dashboardGrid.css";
+import * as shared from "@/styles/pagesShared.css";
 
 interface MetricsResponse {
   fitness: Array<{ date: string; ctl: number; atl: number; tsb: number }>;
@@ -71,7 +73,6 @@ export default function DashboardPage() {
 
   const tsb = latestFitness?.tsb ?? 0;
 
-  // Radar data derived from available metrics
   const totalWeeks = metrics?.weeklyData?.length ?? 1;
   const recentWeeks = metrics?.weeklyData?.slice(-4) ?? [];
   const avgKm =
@@ -89,9 +90,7 @@ export default function DashboardPage() {
       metric: "Intensidad",
       value: Math.min(
         100,
-        Math.round(
-          ((lastWeekData?.tss ?? 0) / 150) * 100,
-        ),
+        Math.round(((lastWeekData?.tss ?? 0) / 150) * 100),
       ),
     },
     {
@@ -100,11 +99,11 @@ export default function DashboardPage() {
     },
     {
       metric: "Cadencia",
-      value: 72, // placeholder without cadence data aggregate
+      value: 72,
     },
     {
       metric: "Economía",
-      value: 68, // placeholder
+      value: 68,
     },
   ];
 
@@ -116,28 +115,15 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* Hero */}
-      <div className="fade-up fade-up-1" style={{ marginBottom: 28 }}>
-        <div
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            color: "#475569",
-            marginBottom: 6,
-            fontFamily: "'DM Mono', monospace",
-          }}
-        >
-          Esta semana · {today}
-        </div>
-        <div className="hero-title">
+      <div className={`${grid.fadeUp1} ${shared.heroBlock}`}>
+        <div className={shared.heroMeta}>Esta semana · {today}</div>
+        <div className={grid.heroTitle}>
           Buenos días,{" "}
-          <span style={{ color: "#fb923c" }}>corredor</span>
+          <span className={shared.accentOrange}>corredor</span>
         </div>
       </div>
 
-      {/* KPI Row */}
-      <div className="fade-up fade-up-2 rg-4">
+      <div className={`${grid.fadeUp2} ${grid.rg4}`}>
         {loadingMetrics || loadingActivities ? (
           <>
             <SkeletonCard height={100} />
@@ -160,9 +146,7 @@ export default function DashboardPage() {
             <StatCard
               label="Pace promedio"
               value={
-                lastActivity
-                  ? secToPace(lastActivity.paceSeckm)
-                  : "—"
+                lastActivity ? secToPace(lastActivity.paceSeckm) : "—"
               }
               sub="min/km · último run"
               accent="#60a5fa"
@@ -187,8 +171,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Charts row */}
-      <div className="fade-up fade-up-3 rg-2-1">
+      <div className={`${grid.fadeUp3} ${grid.rg21}`}>
         {loadingMetrics ? (
           <>
             <SkeletonCard height={260} />
@@ -202,8 +185,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Fitness + Zones */}
-      <div className="fade-up fade-up-4 rg-3-2">
+      <div className={`${grid.fadeUp4} ${grid.rg32}`}>
         {loadingMetrics ? (
           <>
             <SkeletonCard height={260} />
@@ -215,52 +197,29 @@ export default function DashboardPage() {
             {metrics?.zones ? (
               <HRZonesChart zones={metrics.zones} maxHR={metrics.maxHR} />
             ) : (
-              <HRZonesSetup currentMaxHR={metrics?.maxHR} settingsHref="/dashboard/settings" />
+              <HRZonesSetup
+                currentMaxHR={metrics?.maxHR}
+                settingsHref="/dashboard/settings"
+              />
             )}
           </>
         )}
       </div>
 
-      {/* Coach Banner */}
-      <div
-        className="fade-up fade-up-5"
-        style={{
-          background: "rgba(249,115,22,0.08)",
-          border: "1px solid rgba(249,115,22,0.2)",
-          borderRadius: 16,
-          padding: "16px 24px",
-        }}
-      >
-        <div
-          className="coach-banner-inner"
-          style={{ display: "flex", alignItems: "center", gap: 16 }}
-        >
-          <div style={{ fontSize: 28 }}>🤖</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#fb923c", marginBottom: 2 }}>
+      <div className={`${grid.fadeUp5} ${shared.coachBanner}`}>
+        <div className={`${shared.coachBannerRow} ${grid.coachBannerInner}`}>
+          <div className={shared.emoji28}>🤖</div>
+          <div className={shared.flex1}>
+            <div className={shared.coachBannerTitle}>
               Coach IA · Análisis disponible
             </div>
-            <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>
-              Obtén tu análisis semanal personalizado basado en tus datos reales de Strava.
+            <div className={shared.coachBannerBody}>
+              Obtén tu análisis semanal personalizado basado en tus datos reales
+              de Strava.
             </div>
           </div>
-          <div className="coach-banner-btn" style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>
-            <Link
-              href="/dashboard/coach"
-              style={{
-                background: "rgba(249,115,22,0.2)",
-                border: "1px solid rgba(249,115,22,0.3)",
-                borderRadius: 8,
-                padding: "8px 16px",
-                color: "#fb923c",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
-            >
+          <div className={grid.coachBannerBtn}>
+            <Link href="/dashboard/coach" className={shared.coachCtaLink}>
               Ver análisis →
             </Link>
           </div>
