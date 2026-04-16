@@ -1,0 +1,195 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { PrismaClient } from "@pace/db";
+import type { RunType } from "@pace/types";
+import { buildWeeklyContext } from "@/services/coach/context";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+const VALID_WORKOUT_TYPES = new Set<RunType>([
+  "easy",
+  "tempo",
+  "long",
+  "workout",
+  "race",
+  "unknown",
+]);
+
+function isValidRunType(v: unknown): v is RunType {
+  return typeof v === "string" && VALID_WORKOUT_TYPES.has(v as RunType);
+}
+
+export interface GenerateTrainingPlanParams {
+  prisma: PrismaClient;
+  userId: string;
+  goalId: string;
+  goalTitle: string;
+  goalTargetDate: Date;
+  /** Borra el plan actual del objetivo antes de crear uno nuevo */
+  replaceExisting?: boolean;
+  /** Líneas extra para el coach (cumplimiento, notas) */
+  coachNotes?: string[];
+}
+
+export async function generateAndPersistTrainingPlan(
+  params: GenerateTrainingPlanParams,
+) {
+  const {
+    prisma,
+    userId,
+    goalId,
+    goalTitle,
+    goalTargetDate,
+    replaceExisting,
+    coachNotes,
+  } = params;
+
+  if (replaceExisting) {
+    await prisma.trainingPlan.deleteMany({ where: { goalId } });
+  }
+
+  const ctx = await buildWeeklyContext(userId);
+  const today = new Date().toISOString().split("T")[0]!;
+  const raceDate = goalTargetDate.toISOString().split("T")[0]!;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysUntilRace = Math.ceil(
+    (goalTargetDate.getTime() - Date.now()) / msPerDay,
+  );
+
+  const notesBlock =
+    coachNotes && coachNotes.length > 0
+      ? `\nContexto adicional del atleta:\n${coachNotes.map((n) => `- ${n}`).join("\n")}\n`
+      : "";
+
+  const prompt = `Eres un coach de running profesional. Genera un plan de entrenamiento estructurado en JSON.
+
+Atleta: ${ctx.userName}
+Objetivo: ${goalTitle} el ${raceDate}
+Hoy: ${today}
+Días hasta la carrera: ${daysUntilRace}
+Fitness actual: CTL ${ctx.ctl}, ATL ${ctx.atl}, TSB ${ctx.tsb} (${ctx.tsbTrend})
+Volumen semanal reciente: ~${ctx.weeklyKm.toFixed(1)} km/semana
+Ritmo medio reciente: ${ctx.avgPaceFormatted} min/km
+Últimas actividades:
+${ctx.recentActivities.map((a) => `- ${a.date}: ${a.name} ${a.km}km @ ${a.pace}/km`).join("\n")}
+${notesBlock}
+Genera un plan día a día desde hoy (${today}) hasta el día de la carrera (${raceDate}) inclusive.
+
+Responde ÚNICAMENTE con JSON válido en este formato exacto:
+{
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "title": "Título corto del entrenamiento",
+      "description": "Descripción detallada de qué hacer y cómo ejecutarlo",
+      "workoutType": "easy|tempo|long|workout|race|unknown",
+      "durationMin": 45,
+      "targetPace": "Rango de ritmo objetivo en min/km o null",
+      "targetZone": "Zona objetivo de FC (ej: Z2 60-70% FCmax) o null"
+    }
+  ]
+}
+
+Reglas:
+- workoutType "unknown" + title "Descanso" + durationMin 0 para días de descanso
+- workoutType "race" para el día de la carrera (${raceDate})
+- ~2 días de descanso por semana
+- Última semana: taper (reducir volumen 30-40%)
+- Adapta la intensidad al fitness actual del atleta
+- Incluye SIEMPRE targetPace y targetZone para los días de entrenamiento (easy/tempo/long/workout/race)
+- Para descanso (unknown), usa targetPace: null y targetZone: null
+- targetPace debe ser un rango específico en min/km (ej: "5:20-5:35 min/km")
+- targetZone debe usar nomenclatura de zonas (Z1-Z5) con rango de intensidad
+- El plan debe ser realista con respecto al ritmo medio reciente y las últimas actividades del atleta (evitar ritmos extremadamente lentos o rápidos sin justificación)
+- Para sesiones easy/long en Z2, propone ritmos normalmente cercanos al ritmo aeróbico actual del atleta (aprox +20 a +80 seg/km respecto a su ritmo medio reciente, ajustando por fatiga/objetivo)
+- Si hay conflicto entre ritmo y zona en ejecución real, la prioridad es cumplir la zona objetivo; ajusta el ritmo para mantenerse en la zona prescrita
+- Si el contexto indica sesiones saltadas o fatiga, reduce carga de forma prudente en los próximos días
+- Todas las descripciones en español
+- NO incluyas texto fuera del JSON`;
+
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+      temperature: 0.3,
+      responseMimeType: "application/json",
+    },
+  });
+
+  const result = await model.generateContent(prompt);
+  const raw = result.response.text();
+  const parsed = JSON.parse(raw) as {
+    days?: Array<{
+      date?: unknown;
+      title?: unknown;
+      description?: unknown;
+      workoutType?: unknown;
+      durationMin?: unknown;
+      targetPace?: unknown;
+      targetZone?: unknown;
+    }>;
+  };
+
+  if (!Array.isArray(parsed.days)) throw new Error("Invalid plan format");
+
+  const validatedDays = parsed.days
+    .filter(
+      (d) =>
+        typeof d.date === "string" &&
+        typeof d.title === "string" &&
+        typeof d.description === "string" &&
+        isValidRunType(d.workoutType) &&
+        typeof d.durationMin === "number",
+    )
+    .map((d) => ({
+      userId,
+      date: new Date(d.date as string),
+      title: d.title as string,
+      description: d.description as string,
+      workoutType: d.workoutType as RunType,
+      durationMin: d.durationMin as number,
+      targetPace: typeof d.targetPace === "string" ? d.targetPace.trim() : null,
+      targetZone: typeof d.targetZone === "string" ? d.targetZone.trim() : null,
+    }));
+
+  let plan;
+  try {
+    plan = await prisma.trainingPlan.create({
+      data: {
+        goalId,
+        userId,
+        days: {
+          create: validatedDays,
+        },
+      },
+      include: { days: { orderBy: { date: "asc" } } },
+    });
+  } catch (createErr) {
+    const msg = createErr instanceof Error ? createErr.message : "";
+    const hasLegacyClientMismatch =
+      msg.includes("Unknown argument `targetPace`") ||
+      msg.includes("Unknown argument `targetZone`");
+
+    if (!hasLegacyClientMismatch) throw createErr;
+
+    plan = await prisma.trainingPlan.create({
+      data: {
+        goalId,
+        userId,
+        days: {
+          create: validatedDays.map(
+            ({ userId: uid, date, title, description, workoutType, durationMin }) => ({
+              userId: uid,
+              date,
+              title,
+              description,
+              workoutType,
+              durationMin,
+            }),
+          ),
+        },
+      },
+      include: { days: { orderBy: { date: "asc" } } },
+    });
+  }
+
+  return plan;
+}

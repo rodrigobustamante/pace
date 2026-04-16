@@ -174,8 +174,8 @@ export default function DashboardPage() {
       <div className={`${grid.fadeUp3} ${grid.rg21}`}>
         {loadingMetrics ? (
           <>
-            <SkeletonCard height={260} />
-            <SkeletonCard height={260} />
+            <SkeletonCard height={420} />
+            <SkeletonCard height={420} />
           </>
         ) : (
           <>

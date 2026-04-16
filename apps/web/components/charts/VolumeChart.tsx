@@ -3,6 +3,8 @@
 import {
   AreaChart,
   Area,
+  Bar,
+  BarChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -15,6 +17,7 @@ import * as c from "@/styles/chartCard.css";
 interface WeeklyData {
   week: string;
   km: number;
+  tss?: number;
 }
 
 export function VolumeChart({ data }: { data: WeeklyData[] }) {
@@ -60,6 +63,48 @@ export function VolumeChart({ data }: { data: WeeklyData[] }) {
           />
         </AreaChart>
       </ResponsiveContainer>
+
+      <div className={c.stackedChartBlock}>
+        <div className={c.kicker}>Carga semanal</div>
+        <div className={c.stackedChartTitle}>
+          TSS <span className={c.stackedChartAccentBlue}>· estrés acumulado</span>
+        </div>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="tssBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.55} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.04)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="week"
+              tick={{ fill: "#475569", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: "#475569", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar
+              dataKey="tss"
+              name="TSS"
+              fill="url(#tssBarGrad)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={28}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

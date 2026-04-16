@@ -15,6 +15,7 @@ const tabs = [
   { id: "activities", label: "Actividades", href: "/dashboard/activities" },
   { id: "metrics", label: "Métricas", href: "/dashboard/metrics" },
   { id: "coach", label: "Coach IA", href: "/dashboard/coach" },
+  { id: "plan", label: "Plan", href: "/dashboard/plan" },
 ];
 
 export function DashboardShell({ user, children }: Props) {
@@ -103,6 +104,7 @@ export function DashboardShell({ user, children }: Props) {
             activities: "📋",
             metrics: "📊",
             coach: "🤖",
+            plan: "🎯",
           };
           const isActive = activeTab === t.id;
           return (

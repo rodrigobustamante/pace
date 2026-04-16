@@ -58,3 +58,45 @@ export interface WeeklyCoachResponse {
   tip: { title: string; body: string };
   prediction: { title: string; body: string };
 }
+
+export type GoalType =
+  | "race_5k"
+  | "race_10k"
+  | "half_marathon"
+  | "marathon"
+  | "custom";
+
+export interface Goal {
+  id: string;
+  userId: string;
+  title: string;
+  goalType: GoalType;
+  targetDate: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  trainingPlan?: TrainingPlan;
+}
+
+export interface TrainingPlan {
+  id: string;
+  goalId: string;
+  userId: string;
+  generatedAt: Date;
+  days: TrainingDay[];
+}
+
+export interface TrainingDay {
+  id: string;
+  planId: string;
+  userId: string;
+  date: Date;
+  title: string;
+  description: string;
+  workoutType: RunType;
+  durationMin: number;
+  targetPace: string | null;
+  targetZone: string | null;
+  willTrain: boolean | null;
+  createdAt: Date;
+}

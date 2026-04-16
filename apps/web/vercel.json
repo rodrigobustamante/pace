@@ -1,4 +1,4 @@
 {
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @pace/db exec prisma generate && pnpm --filter web build"
+  "buildCommand": "cd ../.. && pnpm --filter @pace/db exec prisma generate && pnpm --filter @pace/db db:migrate:deploy && pnpm --filter web build"
 }
