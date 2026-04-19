@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext } from "@/services/coach/context";
+import { buildWeeklyContext, formatGoalForPrompt } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -66,6 +66,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const goalBlock = formatGoalForPrompt(context.goal);
+
     const prompt = `Athlete: ${context.userName}
 Max HR: ${context.maxHR ?? "not set"} bpm | Threshold HR: ${context.thresholdHR} bpm
 
@@ -86,7 +88,10 @@ Previous week: ${context.prevWeekKm.toFixed(1)} km, TSS ${context.prevWeekTSS} (
 Last 3 activities:
 ${context.recentActivities.map((a) => `- ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, HR ${a.avgHR ?? "—"}bpm`).join("\n")}
 
-Generate the weekly analysis in JSON.`;
+Training goal & plan:
+${goalBlock}
+
+Generate the weekly analysis in JSON. If there is an active goal, the analysis must reference it explicitly — evaluate whether the week's training is aligned with the race preparation, comment on the upcoming plan, and adjust recommendations accordingly.`;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text();

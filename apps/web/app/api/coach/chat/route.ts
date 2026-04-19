@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext } from "@/services/coach/context";
+import { buildWeeklyContext, formatGoalForPrompt } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
   // Build system prompt with athlete context
   const ctx = await buildWeeklyContext(user.id);
 
+  const goalBlock = formatGoalForPrompt(ctx.goal);
+
   const systemInstruction = `Eres el coach personal de running de ${ctx.userName}. Tienes acceso completo a sus datos de entrenamiento.
 Responde preguntas específicas sobre su entrenamiento, rendimiento, recuperación y mejora.
 Sé directo, concreto y usa los datos reales del atleta en tus respuestas. Siempre responde en español.
@@ -70,7 +72,9 @@ Datos actuales del atleta:
 - Semana anterior: ${ctx.prevWeekKm.toFixed(1)} km, TSS ${ctx.prevWeekTSS} (${ctx.volumeChangePct > 0 ? "+" : ""}${ctx.volumeChangePct}% volumen)
 - Distribución de zonas (90 días): ${ctx.zoneDistribution}
 - Últimas 3 actividades:
-${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, FC ${a.avgHR ?? "—"}bpm`).join("\n")}`;
+${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, FC ${a.avgHR ?? "—"}bpm`).join("\n")}
+
+${goalBlock}`;
 
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",

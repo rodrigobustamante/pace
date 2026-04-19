@@ -8,6 +8,142 @@ import {
   mToKm,
 } from "@pace/utils";
 
+export interface PlannedWorkout {
+  date: string;
+  title: string;
+  workoutType: string;
+  durationMin: number;
+  description: string;
+}
+
+export type GoalContext = {
+  hasGoal: false;
+} | {
+  hasGoal: true;
+  goalTitle: string;
+  goalType: string;
+  targetDate: string;
+  daysUntilRace: number;
+  todayWorkout: PlannedWorkout | null;      // what the plan says for today
+  nextWorkout: PlannedWorkout | null;       // next non-rest day after today
+  upcomingWeek: PlannedWorkout[];           // next 7 days (incl today)
+  planProgress: {
+    totalDays: number;
+    confirmedDays: number;   // willTrain === true
+    skippedDays: number;     // willTrain === false
+    pendingDays: number;     // willTrain === null (future)
+  };
+}
+
+/** Renders a GoalContext as a prompt-ready text block. */
+export function formatGoalForPrompt(goal: GoalContext): string {
+  if (!goal.hasGoal) return "Sin objetivo activo.";
+
+  const lines: string[] = [
+    `Objetivo: ${goal.goalTitle} (${goal.targetDate}) — ${goal.daysUntilRace} días restantes`,
+    `Progreso del plan: ${goal.planProgress.confirmedDays} confirmados, ${goal.planProgress.skippedDays} saltados, ${goal.planProgress.pendingDays} pendientes de ${goal.planProgress.totalDays} total`,
+  ];
+
+  if (goal.todayWorkout) {
+    const tw = goal.todayWorkout;
+    const label = tw.workoutType === "unknown" ? "Descanso" : `${tw.title} (${tw.durationMin} min, ${tw.workoutType})`;
+    lines.push(`Entrenamiento planificado para HOY: ${label}`);
+    if (tw.workoutType !== "unknown") lines.push(`  → ${tw.description}`);
+  }
+
+  if (goal.nextWorkout) {
+    const nw = goal.nextWorkout;
+    lines.push(`Próximo entrenamiento: ${nw.date} — ${nw.title} (${nw.durationMin} min, ${nw.workoutType})`);
+  }
+
+  if (goal.upcomingWeek.length > 0) {
+    lines.push("Próximos 7 días del plan:");
+    for (const d of goal.upcomingWeek) {
+      const label = d.workoutType === "unknown" ? "Descanso" : `${d.title} (${d.durationMin} min)`;
+      lines.push(`  ${d.date}: ${label}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+export async function buildGoalContext(userId: string): Promise<GoalContext> {
+  const goal = await prisma.goal.findFirst({
+    where: { userId, isActive: true },
+    orderBy: { createdAt: "desc" },
+    include: {
+      trainingPlan: {
+        include: { days: { orderBy: { date: "asc" } } },
+      },
+    },
+  });
+
+  if (!goal?.trainingPlan) return { hasGoal: false };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0]!;
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysUntilRace = Math.ceil(
+    (goal.targetDate.getTime() - today.getTime()) / msPerDay,
+  );
+
+  const days = goal.trainingPlan.days;
+  const futureDays = days.filter((d) => {
+    const ds = d.date.toISOString().split("T")[0]!;
+    return ds >= todayStr;
+  });
+
+  const todayDay = futureDays.find(
+    (d) => d.date.toISOString().split("T")[0] === todayStr,
+  );
+  const nextWorkoutDay = futureDays.find(
+    (d) =>
+      d.date.toISOString().split("T")[0]! > todayStr &&
+      d.workoutType !== "unknown",
+  );
+
+  const sevenDaysLater = new Date(today.getTime() + 7 * msPerDay);
+  const upcomingWeek = futureDays
+    .filter((d) => d.date <= sevenDaysLater)
+    .map((d) => ({
+      date: d.date.toISOString().split("T")[0]!,
+      title: d.title,
+      workoutType: d.workoutType,
+      durationMin: d.durationMin,
+      description: d.description,
+    }));
+
+  const toPlanned = (d: (typeof days)[0] | undefined): PlannedWorkout | null =>
+    d
+      ? {
+          date: d.date.toISOString().split("T")[0]!,
+          title: d.title,
+          workoutType: d.workoutType,
+          durationMin: d.durationMin,
+          description: d.description,
+        }
+      : null;
+
+  const totalDays = days.length;
+  const confirmedDays = days.filter((d) => d.willTrain === true).length;
+  const skippedDays = days.filter((d) => d.willTrain === false).length;
+  const pendingDays = days.filter((d) => d.willTrain === null).length;
+
+  return {
+    hasGoal: true,
+    goalTitle: goal.title,
+    goalType: goal.goalType,
+    targetDate: goal.targetDate.toISOString().split("T")[0]!,
+    daysUntilRace,
+    todayWorkout: toPlanned(todayDay),
+    nextWorkout: toPlanned(nextWorkoutDay),
+    upcomingWeek,
+    planProgress: { totalDays, confirmedDays, skippedDays, pendingDays },
+  };
+}
+
 export interface WeeklyContext {
   userName: string;
   maxHR: number | null;
@@ -35,6 +171,7 @@ export interface WeeklyContext {
     pace: string;
     avgHR: number | null;
   }>;
+  goal: GoalContext;
 }
 
 export interface DailyContext {
@@ -63,6 +200,7 @@ export interface DailyContext {
     daysAgo: number;
   } | null;
   consecutiveRunDays: number;
+  goal: GoalContext;
 }
 
 export async function buildDailyContext(userId: string): Promise<DailyContext> {
@@ -167,6 +305,8 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     check.setDate(check.getDate() - 1);
   }
 
+  const goal = await buildGoalContext(userId);
+
   return {
     userName: user.name,
     maxHR: user.maxHR,
@@ -184,6 +324,7 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     daysSinceLastRun: daysAgo,
     lastActivity,
     consecutiveRunDays,
+    goal,
   };
 }
 
@@ -340,6 +481,8 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
       ].join(" | ")
     : "no disponible";
 
+  const goal = await buildGoalContext(userId);
+
   return {
     userName: user.name,
     maxHR: user.maxHR,
@@ -361,5 +504,6 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
     prevWeekTSS,
     volumeChangePct,
     recentActivities,
+    goal,
   };
 }

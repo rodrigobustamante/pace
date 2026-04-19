@@ -64,6 +64,16 @@ export async function GET(req: NextRequest) {
     // Keep the function alive until sync completes
     waitUntil(syncActivities(user.id).catch(console.error));
 
+    // Mobile: redirect to deep link with userId so the app can store it
+    const platform = req.nextUrl.searchParams.get("platform");
+    const mobileRedirect = req.nextUrl.searchParams.get("redirect");
+    if (platform === "mobile" && mobileRedirect) {
+      const deepLink = new URL(decodeURIComponent(mobileRedirect));
+      deepLink.searchParams.set("userId", user.id);
+      return NextResponse.redirect(deepLink.toString());
+    }
+
+    // Web: set httpOnly cookie and redirect to dashboard
     const response = NextResponse.redirect(new URL("/dashboard", req.url));
     response.cookies.set("pace_user_id", user.id, {
       httpOnly: true,

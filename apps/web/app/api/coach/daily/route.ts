@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildDailyContext } from "@/services/coach/context";
+import { buildDailyContext, formatGoalForPrompt } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
       ? `- Last run: ${ctx.lastActivity.name} (${ctx.lastActivity.daysAgo === 0 ? "today" : ctx.lastActivity.daysAgo === 1 ? "yesterday" : `${ctx.lastActivity.daysAgo} days ago`}) — ${ctx.lastActivity.km}km @ ${ctx.lastActivity.pace}/km, HR ${ctx.lastActivity.avgHR ?? "—"}bpm, TSS ${ctx.lastActivity.tss ?? "—"}`
       : "- No recent activities";
 
+    const goalBlock = formatGoalForPrompt(ctx.goal);
+
     const prompt = `Athlete: ${ctx.userName}
 Max HR: ${ctx.maxHR ?? "not set"} bpm | Threshold HR: ${ctx.thresholdHR} bpm
 Today: ${ctx.dayOfWeek}, ${ctx.todayDate}
@@ -60,7 +62,10 @@ ${lastActLines}
 - Consecutive run days before today: ${ctx.consecutiveRunDays}
 - Days since last run: ${ctx.daysSinceLastRun === 0 ? "ran today already" : ctx.daysSinceLastRun}
 
-Should the athlete train or rest today? Generate the daily recommendation in JSON.`;
+Training goal & plan:
+${goalBlock}
+
+Should the athlete train or rest today? Generate the daily recommendation in JSON. If there is an active goal, the recommendation MUST reference it — check if today has a planned workout, evaluate whether today is a good day to do it given the athlete's fatigue/form, and adjust session type, duration, and intensity accordingly.`;
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
