@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { PaceLogo } from "@/components/PaceLogo";
 import * as grid from "@/styles/dashboardGrid.css";
 import * as shell from "@/styles/shell.css";
 
@@ -38,11 +39,7 @@ export function DashboardShell({ user, children }: Props) {
     <div className={grid.shellRoot}>
       <div className={`${shell.headerBar} ${grid.headerInner}`}>
         <div className={shell.headerLeft}>
-          <div className={shell.logoIcon}>🏃</div>
-          <div>
-            <div className={shell.brandTitle}>PACE</div>
-            <div className={shell.brandSubtitle}>Running Analytics</div>
-          </div>
+          <PaceLogo className={shell.logoImg} />
         </div>
 
         <nav className={grid.headerNav}>

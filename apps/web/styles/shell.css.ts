@@ -2,6 +2,7 @@ import { style } from "@vanilla-extract/css";
 import { vars } from "./theme.css";
 
 const mobile = "(max-width: 639px)";
+const narrowMobile = "(max-width: 420px)";
 
 export const headerBar = style({
   borderBottom: `1px solid ${vars.color.border}`,
@@ -26,6 +27,25 @@ export const headerLeft = style({
   display: "flex",
   alignItems: "center",
   gap: 12,
+});
+
+export const logoImg = style({
+  height: 36,
+  width: "auto",
+  maxWidth: 200,
+  display: "block",
+  objectFit: "contain",
+  flexShrink: 0,
+  "@media": {
+    [mobile]: {
+      height: 30,
+      maxWidth: 148,
+    },
+    [narrowMobile]: {
+      height: 26,
+      maxWidth: 120,
+    },
+  },
 });
 
 export const logoIcon = style({

@@ -337,16 +337,25 @@ export const homeInner = style({
   maxWidth: 400,
 });
 
-export const homeLogo = style({
-  width: 56,
-  height: 56,
-  borderRadius: 14,
-  background: `linear-gradient(135deg, ${vars.color.orangeDark}, ${vars.color.red})`,
+export const homeLogoWrap = style({
+  margin: "0 auto 28px",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
-  fontSize: 28,
-  margin: "0 auto 24px",
+  width: "100%",
+});
+
+export const homeLogoImg = style({
+  width: "min(88vw, 300px)",
+  height: "auto",
+  maxHeight: 96,
+  display: "block",
+  objectFit: "contain",
+  "@media": {
+    "(min-width: 480px)": {
+      width: "min(72vw, 340px)",
+      maxHeight: 112,
+    },
+  },
 });
 
 export const homeTitle = style({
