@@ -8,6 +8,7 @@ export interface CoachInsights {
   warning: { title: string; body: string };
   tip: { title: string; body: string };
   prediction: { title: string; body: string };
+  complementary?: { title: string; body: string };
 }
 
 export function useCoachStream() {

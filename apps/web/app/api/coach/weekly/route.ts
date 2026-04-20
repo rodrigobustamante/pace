@@ -17,8 +17,18 @@ Respond ONLY in valid JSON with this exact structure, no extra text:
   "positive": { "title": "string", "body": "string" },
   "warning":  { "title": "string", "body": "string" },
   "tip":      { "title": "string", "body": "string" },
-  "prediction":{ "title": "string", "body": "string" }
-}`;
+  "prediction":{ "title": "string", "body": "string" },
+  "complementary": { "title": "string", "body": "string" }
+}
+The "complementary" field must prescribe a concrete strength training session targeting the primary running muscle groups: glutes, hamstrings, quads, calves, hip flexors, and core. Goal is hypertrophy and injury prevention, not cardio.
+Rules:
+- Always recommend strength work (never yoga, swimming, or cycling as the main recommendation)
+- Prescribe 4–6 exercises with exact sets × reps (e.g. "4×10 hip thrust con peso", "3×12 sentadilla búlgara por pierna")
+- Adjust volume/intensity to fatigue: TSB < -15 → 2–3 sets per exercise, lighter; TSB > 0 → 4–5 sets, progressive overload
+- Race proximity: < 14 days to race → skip heavy compound lifts, prescribe only bodyweight activation (glute bridges, clamshells, single-leg RDL sin peso); > 14 days → full weighted session allowed
+- Specify the best day to do it relative to runs (e.g. "el miércoles, al menos 6h después del rodaje" or "el día de descanso")
+- Focus on unilateral exercises (single-leg) to correct asymmetries common in runners
+- Keep the body field concise: list the exercises directly, one per line or separated by "·"`;
 
 /** Extracts the first valid JSON object from a Gemini response.
  *  Handles thinking tokens, markdown fences, and extra prose. */

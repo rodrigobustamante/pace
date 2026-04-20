@@ -5,6 +5,8 @@ import { vars } from "./theme.css";
 
 export const heatmapSection = style({
   marginBottom: 32,
+  overflowX: "auto",
+  WebkitOverflowScrolling: "touch",
 });
 
 export const heatmapGrid = style({
@@ -118,8 +120,12 @@ export const heatmapSkeletonRow = style({
 
 export const prGrid = style({
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+  gridTemplateColumns: "repeat(2, 1fr)",
   gap: 12,
+  "@media": {
+    "screen and (min-width: 480px)": { gridTemplateColumns: "repeat(3, 1fr)" },
+    "screen and (min-width: 640px)": { gridTemplateColumns: "repeat(5, 1fr)" },
+  },
 });
 
 export const prCard = style({
@@ -170,9 +176,13 @@ export const prEmpty = style({
 
 export const annualGrid = style({
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+  gridTemplateColumns: "repeat(2, 1fr)",
   gap: 12,
   marginBottom: 24,
+  "@media": {
+    "screen and (min-width: 480px)": { gridTemplateColumns: "repeat(3, 1fr)" },
+    "screen and (min-width: 640px)": { gridTemplateColumns: "repeat(5, 1fr)" },
+  },
 });
 
 export const annualStat = style({
@@ -203,8 +213,12 @@ export const annualLabel = style({
 
 export const streakRow = style({
   display: "flex",
+  flexDirection: "column",
   gap: 12,
   marginBottom: 24,
+  "@media": {
+    "screen and (min-width: 480px)": { flexDirection: "row" },
+  },
 });
 
 export const streakCard = style({
@@ -238,7 +252,10 @@ export const streakFire = style({
 // ─── Section Blocks ──────────────────────────────────────────────────────────
 
 export const sectionBlock = style({
-  marginBottom: 28,
+  marginBottom: 24,
+  "@media": {
+    "screen and (min-width: 640px)": { marginBottom: 28 },
+  },
 });
 
 export const sectionHeading = style({

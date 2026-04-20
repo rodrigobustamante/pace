@@ -276,6 +276,19 @@ export const chatSection = style({
   marginTop: 32,
 });
 
+export const complementarySection = style({
+  marginTop: 8,
+});
+
+export const complementarySectionLabel = style({
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "#2dd4bf",
+  marginBottom: 8,
+});
+
 export const emptyCoach = style({
   background: vars.color.overlayLight,
   border: `1px solid ${vars.color.borderSubtle}`,

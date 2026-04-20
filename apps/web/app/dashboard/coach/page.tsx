@@ -355,6 +355,21 @@ export default function CoachPage() {
             ))}
           </div>
 
+          {insights.complementary && (
+            <StaggeredCard index={4}>
+              <div className={cp.complementarySection}>
+                <div className={cp.complementarySectionLabel}>
+                  Fuerza para runners
+                </div>
+                <CoachInsightCard
+                  type="complementary"
+                  title={insights.complementary.title}
+                  body={insights.complementary.body}
+                />
+              </div>
+            </StaggeredCard>
+          )}
+
           <div className={cp.footerNote}>
             <span className={cp.footerMono}>
               Análisis válido para esta semana · se regenera automáticamente
