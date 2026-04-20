@@ -56,10 +56,7 @@ function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function buildGrid(
-  days: HeatmapDay[],
-  maxKm: number
-): {
+function buildGrid(days: HeatmapDay[]): {
   weeks: Array<Array<{ date: string; km: number; label: string } | null>>;
   monthLabels: Array<{ label: string; col: number }>;
 } {
@@ -78,7 +75,7 @@ function buildGrid(
   const weeks: Array<Array<{ date: string; km: number; label: string } | null>> =
     [];
   const monthLabels: Array<{ label: string; col: number }> = [];
-  let seenMonths = new Set<string>();
+  const seenMonths = new Set<string>();
 
   const cursor = new Date(startMonday);
 
@@ -151,7 +148,7 @@ export function ActivityHeatmap() {
     );
   }
 
-  const { weeks, monthLabels } = buildGrid(data.days, data.maxKm);
+  const { weeks, monthLabels } = buildGrid(data.days);
 
   return (
     <div className={mx.heatmapSection}>
