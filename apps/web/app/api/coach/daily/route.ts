@@ -45,6 +45,10 @@ export async function GET(req: NextRequest) {
       : "- No recent activities";
 
     const goalBlock = formatGoalForPrompt(ctx.goal);
+    const riskBlock =
+      ctx.overttrainingRisk.level !== "ok"
+        ? `⚠️ Overtraining signals (${ctx.overttrainingRisk.level}): ${ctx.overttrainingRisk.signals.join(" · ")}`
+        : "No overtraining signals.";
 
     const prompt = `Athlete: ${ctx.userName}
 Max HR: ${ctx.maxHR ?? "not set"} bpm | Threshold HR: ${ctx.thresholdHR} bpm
@@ -62,10 +66,13 @@ ${lastActLines}
 - Consecutive run days before today: ${ctx.consecutiveRunDays}
 - Days since last run: ${ctx.daysSinceLastRun === 0 ? "ran today already" : ctx.daysSinceLastRun}
 
+Overtraining signals:
+${riskBlock}
+
 Training goal & plan:
 ${goalBlock}
 
-Should the athlete train or rest today? Generate the daily recommendation in JSON. If there is an active goal, the recommendation MUST reference it — check if today has a planned workout, evaluate whether today is a good day to do it given the athlete's fatigue/form, and adjust session type, duration, and intensity accordingly.`;
+Should the athlete train or rest today? Generate the daily recommendation in JSON. If overtraining signals are present, they MUST influence the recommendation — consider recommending rest or a very easy session regardless of the plan. If there is an active goal, check if today has a planned workout and evaluate whether fatigue allows executing it.`;
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",

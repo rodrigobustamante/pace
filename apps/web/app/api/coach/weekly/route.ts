@@ -68,6 +68,29 @@ export async function GET(req: NextRequest) {
 
     const goalBlock = formatGoalForPrompt(context.goal);
 
+    // Overtraining risk block
+    const riskBlock =
+      context.overttrainingRisk.level !== "ok"
+        ? `⚠️ Overtraining signals detected (${context.overttrainingRisk.level}): ${context.overttrainingRisk.signals.join(" · ")}`
+        : "No overtraining signals.";
+
+    // Long run recovery block
+    const recoveryBlock = context.longRunRecovery
+      ? (() => {
+          const lr = context.longRunRecovery;
+          const days =
+            lr.recoveryDays.length > 0
+              ? lr.recoveryDays
+                  .map(
+                    (d) =>
+                      `  Day+${d.daysAfter}: ${d.km}km @ ${d.pace}/km, HR ${d.avgHR ?? "—"}bpm, TSS ${d.tss ?? "—"}`,
+                  )
+                  .join("\n")
+              : "  No activities logged yet in recovery window";
+          return `Last long run: ${lr.longRunKm}km on ${lr.longRunDate} (${lr.daysSinceLongRun} days ago)\nRecovery activities (7-day window):\n${days}`;
+        })()
+      : "No long run in the last 30 days.";
+
     const prompt = `Athlete: ${context.userName}
 Max HR: ${context.maxHR ?? "not set"} bpm | Threshold HR: ${context.thresholdHR} bpm
 
@@ -88,10 +111,16 @@ Previous week: ${context.prevWeekKm.toFixed(1)} km, TSS ${context.prevWeekTSS} (
 Last 3 activities:
 ${context.recentActivities.map((a) => `- ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, HR ${a.avgHR ?? "—"}bpm`).join("\n")}
 
+Overtraining signals:
+${riskBlock}
+
+Post-long-run recovery:
+${recoveryBlock}
+
 Training goal & plan:
 ${goalBlock}
 
-Generate the weekly analysis in JSON. If there is an active goal, the analysis must reference it explicitly — evaluate whether the week's training is aligned with the race preparation, comment on the upcoming plan, and adjust recommendations accordingly.`;
+Generate the weekly analysis in JSON. If there is an active goal, the analysis must reference it explicitly — evaluate whether the week's training is aligned with the race preparation, comment on the upcoming plan, and adjust recommendations accordingly. If overtraining signals are detected, the warning card MUST address them directly.`;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text();

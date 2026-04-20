@@ -2,6 +2,7 @@
 
 import { useCoachStream } from "@/hooks/useCoachStream";
 import { useDailyCoach } from "@/hooks/useDailyCoach";
+import { useCoachRisk } from "@/hooks/useCoachRisk";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { CoachChat } from "@/components/CoachChat";
 import { SkeletonCard } from "@/components/SkeletonCard";
@@ -65,6 +66,84 @@ function StaggeredCard({
   return (
     <div className={st.reveal} data-visible={visible ? "true" : "false"}>
       {children}
+    </div>
+  );
+}
+
+// ─── Overtraining banner ──────────────────────────────────────────────────────
+
+function OverttrainingBanner() {
+  const { risk, isLoading } = useCoachRisk();
+  if (isLoading || !risk || risk.level === "ok") return null;
+
+  const isDanger = risk.level === "danger";
+  return (
+    <div className={`${cp.riskBanner} ${isDanger ? cp.riskBannerDanger : cp.riskBannerWarning}`}>
+      <span className={cp.riskIcon}>{isDanger ? "🚨" : "⚠️"}</span>
+      <div className={cp.riskContent}>
+        <div className={`${cp.riskTitle} ${isDanger ? cp.riskTitleDanger : cp.riskTitleWarning}`}>
+          {isDanger ? "Riesgo de sobreentrenamiento" : "Señales de fatiga elevada"}
+        </div>
+        <div className={cp.riskSignals}>{risk.signals.join(" · ")}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Race day projection card ─────────────────────────────────────────────────
+
+function RaceProjectionCard() {
+  const { raceProjection, isLoading } = useCoachRisk();
+  if (isLoading || !raceProjection?.projection) return null;
+
+  const { goalTitle, targetDate, daysUntilRace, projection } = raceProjection;
+  const { projectedCTL, projectedATL, projectedTSB } = projection;
+
+  const tsbClass =
+    projectedTSB >= 5 ? cp.projectionValuePositive
+    : projectedTSB >= -10 ? cp.projectionValueNeutral
+    : cp.projectionValueNegative;
+
+  const formLabel =
+    projectedTSB >= 5 ? "✅ Forma óptima para competir"
+    : projectedTSB >= -10 ? "🟡 Forma aceptable"
+    : "🔴 Llegás con fatiga";
+
+  const formClass =
+    projectedTSB >= 5 ? cp.projectionFormGood
+    : projectedTSB >= -10 ? cp.projectionFormOk
+    : cp.projectionFormBad;
+
+  return (
+    <div className={cp.projectionCard}>
+      <div className={cp.projectionHeader}>
+        <div>
+          <div className={cp.projectionLabel}>Proyección al día de carrera</div>
+          <div className={cp.projectionRace}>{goalTitle}</div>
+        </div>
+        <div className={cp.projectionDays}>{targetDate} · en {daysUntilRace}d</div>
+      </div>
+      <div className={cp.projectionMetrics}>
+        <div className={cp.projectionMetric}>
+          <span className={`${cp.projectionValue} ${cp.projectionValueNeutral}`}>
+            {projectedCTL}
+          </span>
+          <span className={cp.projectionMetricLabel}>CTL</span>
+        </div>
+        <div className={cp.projectionMetric}>
+          <span className={`${cp.projectionValue} ${cp.projectionValueNegative}`}>
+            {projectedATL}
+          </span>
+          <span className={cp.projectionMetricLabel}>ATL</span>
+        </div>
+        <div className={cp.projectionMetric}>
+          <span className={`${cp.projectionValue} ${tsbClass}`}>
+            {projectedTSB > 0 ? `+${projectedTSB}` : projectedTSB}
+          </span>
+          <span className={cp.projectionMetricLabel}>TSB</span>
+        </div>
+      </div>
+      <div className={`${cp.projectionFormBadge} ${formClass}`}>{formLabel}</div>
     </div>
   );
 }
@@ -204,7 +283,9 @@ export default function CoachPage() {
         </button>
       </div>
 
+      <OverttrainingBanner />
       <DailyAdviceCard />
+      <RaceProjectionCard />
 
       {error ? <div className={cp.errorBanner}>{error}</div> : null}
 

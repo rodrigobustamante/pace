@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
   const ctx = await buildWeeklyContext(user.id);
 
   const goalBlock = formatGoalForPrompt(ctx.goal);
+  const riskLine =
+    ctx.overttrainingRisk.level !== "ok"
+      ? `⚠️ Señales de sobreentrenamiento (${ctx.overttrainingRisk.level}): ${ctx.overttrainingRisk.signals.join(" · ")}`
+      : "Sin señales de sobreentrenamiento.";
 
   const systemInstruction = `Eres el coach personal de running de ${ctx.userName}. Tienes acceso completo a sus datos de entrenamiento.
 Responde preguntas específicas sobre su entrenamiento, rendimiento, recuperación y mejora.
@@ -73,6 +77,7 @@ Datos actuales del atleta:
 - Distribución de zonas (90 días): ${ctx.zoneDistribution}
 - Últimas 3 actividades:
 ${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, FC ${a.avgHR ?? "—"}bpm`).join("\n")}
+- ${riskLine}
 
 ${goalBlock}`;
 

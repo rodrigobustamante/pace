@@ -6,6 +6,10 @@ import {
   zoneDistribution,
   secToPace,
   mToKm,
+  assessOverttrainingRisk,
+  projectFitnessToDate,
+  type OverttrainingRisk,
+  type RaceProjection,
 } from "@pace/utils";
 
 export interface PlannedWorkout {
@@ -33,7 +37,23 @@ export type GoalContext = {
     skippedDays: number;     // willTrain === false
     pendingDays: number;     // willTrain === null (future)
   };
+  raceProjection: RaceProjection | null;   // projected CTL/ATL/TSB on race day
 }
+
+export interface LongRunRecovery {
+  longRunDate: string;
+  longRunKm: string;
+  daysSinceLongRun: number;
+  recoveryDays: Array<{
+    daysAfter: number;
+    km: string;
+    pace: string;
+    avgHR: number | null;
+    tss: number | null;
+  }>;
+}
+
+export { type OverttrainingRisk, type RaceProjection };
 
 /** Renders a GoalContext as a prompt-ready text block. */
 export function formatGoalForPrompt(goal: GoalContext): string {
@@ -67,7 +87,11 @@ export function formatGoalForPrompt(goal: GoalContext): string {
   return lines.join("\n");
 }
 
-export async function buildGoalContext(userId: string): Promise<GoalContext> {
+export async function buildGoalContext(
+  userId: string,
+  currentCtl = 0,
+  currentAtl = 0,
+): Promise<GoalContext> {
   const goal = await prisma.goal.findFirst({
     where: { userId, isActive: true },
     orderBy: { createdAt: "desc" },
@@ -131,6 +155,23 @@ export async function buildGoalContext(userId: string): Promise<GoalContext> {
   const skippedDays = days.filter((d) => d.willTrain === false).length;
   const pendingDays = days.filter((d) => d.willTrain === null).length;
 
+  // Race day projection — simulate CTL/ATL/TSB if the plan is followed
+  let raceProjection: RaceProjection | null = null;
+  if (daysUntilRace > 0 && currentCtl > 0) {
+    const planWorkouts = days.map((d) => ({
+      date: d.date.toISOString().split("T")[0]!,
+      workoutType: d.workoutType,
+      durationMin: d.durationMin,
+    }));
+    raceProjection = projectFitnessToDate(
+      currentCtl,
+      currentAtl,
+      todayStr,
+      goal.targetDate.toISOString().split("T")[0]!,
+      planWorkouts,
+    );
+  }
+
   return {
     hasGoal: true,
     goalTitle: goal.title,
@@ -141,6 +182,7 @@ export async function buildGoalContext(userId: string): Promise<GoalContext> {
     nextWorkout: toPlanned(nextWorkoutDay),
     upcomingWeek,
     planProgress: { totalDays, confirmedDays, skippedDays, pendingDays },
+    raceProjection,
   };
 }
 
@@ -172,6 +214,8 @@ export interface WeeklyContext {
     avgHR: number | null;
   }>;
   goal: GoalContext;
+  overttrainingRisk: OverttrainingRisk;
+  longRunRecovery: LongRunRecovery | null;
 }
 
 export interface DailyContext {
@@ -201,6 +245,7 @@ export interface DailyContext {
   } | null;
   consecutiveRunDays: number;
   goal: GoalContext;
+  overttrainingRisk: OverttrainingRisk;
 }
 
 export async function buildDailyContext(userId: string): Promise<DailyContext> {
@@ -305,7 +350,12 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     check.setDate(check.getDate() - 1);
   }
 
-  const goal = await buildGoalContext(userId);
+  const rCtl = Math.round(ctl);
+  const rAtl = Math.round(atl);
+  const rTsb = Math.round(tsb);
+
+  const goal = await buildGoalContext(userId, rCtl, rAtl);
+  const overttrainingRisk = assessOverttrainingRisk(rCtl, rAtl, rTsb, consecutiveRunDays);
 
   return {
     userName: user.name,
@@ -313,9 +363,9 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     thresholdHR,
     todayDate: now.toISOString().split("T")[0]!,
     dayOfWeek,
-    ctl: Math.round(ctl),
-    atl: Math.round(atl),
-    tsb: Math.round(tsb),
+    ctl: rCtl,
+    atl: rAtl,
+    tsb: rTsb,
     tsbTrend,
     weekSessionsCount: thisWeekActs.length,
     weeklyKm,
@@ -325,6 +375,60 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     lastActivity,
     consecutiveRunDays,
     goal,
+    overttrainingRisk,
+  };
+}
+
+// ─── Long run recovery helper ─────────────────────────────────────────────────
+
+type ActivitySlim = {
+  date: Date;
+  type: string;
+  distanceM: number;
+  durationSec: number;
+  paceSeckm: number;
+  avgHRbpm: number | null;
+  tss: number | null;
+};
+
+function buildLongRunRecovery(
+  activities: ActivitySlim[],
+  thresholdHR: number,
+): LongRunRecovery | null {
+  const MS_PER_DAY = 86_400_000;
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * MS_PER_DAY);
+
+  // Most recent long run in the last 30 days
+  const longRuns = activities.filter(
+    (a) => a.type === "long" && a.date >= thirtyDaysAgo,
+  );
+  if (longRuns.length === 0) return null;
+
+  const lastLong = longRuns[longRuns.length - 1]!;
+  const daysSince = Math.floor((now.getTime() - lastLong.date.getTime()) / MS_PER_DAY);
+
+  // Activities in the 7 days after the long run (excluding the long run itself)
+  const sevenDaysAfter = new Date(lastLong.date.getTime() + 7 * MS_PER_DAY);
+  const recoveryActs = activities.filter(
+    (a) => a.date > lastLong.date && a.date <= sevenDaysAfter,
+  );
+
+  return {
+    longRunDate: lastLong.date.toISOString().split("T")[0]!,
+    longRunKm: mToKm(lastLong.distanceM),
+    daysSinceLongRun: daysSince,
+    recoveryDays: recoveryActs.map((a) => {
+      const daysAfter = Math.round((a.date.getTime() - lastLong.date.getTime()) / MS_PER_DAY);
+      const tss = a.tss ?? (a.avgHRbpm ? Math.round(calculateRunTSS(a.durationSec, a.avgHRbpm, thresholdHR)) : null);
+      return {
+        daysAfter,
+        km: mToKm(a.distanceM),
+        pace: secToPace(a.paceSeckm),
+        avgHR: a.avgHRbpm,
+        tss,
+      };
+    }),
   };
 }
 
@@ -339,6 +443,7 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
     orderBy: { date: "asc" },
     select: {
       date: true,
+      type: true,
       durationSec: true,
       distanceM: true,
       paceSeckm: true,
@@ -481,15 +586,21 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
       ].join(" | ")
     : "no disponible";
 
-  const goal = await buildGoalContext(userId);
+  const rCtl = Math.round(ctl);
+  const rAtl = Math.round(atl);
+  const rTsb = Math.round(tsb);
+
+  const goal = await buildGoalContext(userId, rCtl, rAtl);
+  const overttrainingRisk = assessOverttrainingRisk(rCtl, rAtl, rTsb, 0); // weekly doesn't track consecutive days
+  const longRunRecovery = buildLongRunRecovery(allActivities, thresholdHR);
 
   return {
     userName: user.name,
     maxHR: user.maxHR,
     thresholdHR,
-    ctl: Math.round(ctl),
-    atl: Math.round(atl),
-    tsb: Math.round(tsb),
+    ctl: rCtl,
+    atl: rAtl,
+    tsb: rTsb,
     tsbTrend,
     weekStart: weekStart.toISOString().split("T")[0]!,
     weekEnd: weekEnd.toISOString().split("T")[0]!,
@@ -505,5 +616,7 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
     volumeChangePct,
     recentActivities,
     goal,
+    overttrainingRisk,
+    longRunRecovery,
   };
 }
