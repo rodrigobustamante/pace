@@ -67,6 +67,48 @@ export const heatmapWrap = style({
   overflowX: "auto",
 });
 
+export const heatmapTooltip = style({
+  position: "fixed",
+  pointerEvents: "none",
+  zIndex: 999,
+  background: "#0f172a",
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: 8,
+  padding: "8px 12px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+  minWidth: 140,
+  userSelect: "none",
+});
+
+export const heatmapTooltipDate = style({
+  fontSize: 11,
+  color: vars.color.muted,
+  fontFamily: vars.font.dmMono,
+  marginBottom: 4,
+  textTransform: "capitalize",
+});
+
+export const heatmapTooltipKm = style({
+  fontSize: 20,
+  fontWeight: 700,
+  fontFamily: vars.font.barlow,
+  color: vars.color.orange,
+  lineHeight: 1,
+  marginBottom: 4,
+});
+
+export const heatmapTooltipEmpty = style({
+  fontSize: 12,
+  color: vars.color.muted,
+  fontFamily: vars.font.dmSans,
+});
+
+export const heatmapTooltipMeta = style({
+  fontSize: 11,
+  color: vars.color.muted2,
+  fontFamily: vars.font.dmMono,
+});
+
 export const heatmapSkeletonRow = style({
   display: "flex",
   gap: 3,
