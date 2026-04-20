@@ -123,7 +123,7 @@ export default function MetricsPage() {
                 </div>
                 <div className={mx.annualLabel}>desnivel</div>
               </div>
-              <div className={mx.annualStat}>
+              <div className={`${mx.annualStat} ${mx.annualStatLast}`}>
                 <div className={mx.annualValue}>
                   {annualStats.avgWeeklyKm.toFixed(1)}
                 </div>

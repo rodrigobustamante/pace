@@ -35,6 +35,7 @@ export const contentWrap = style({
   maxWidth: "1200px",
   margin: "0 auto",
   padding: "32px 32px 0",
+  width: "100%",
   "@media": {
     [mobile]: {
       flex: 1,

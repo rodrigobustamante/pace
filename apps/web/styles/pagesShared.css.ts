@@ -66,6 +66,9 @@ export const pageTitle = style({
   fontSize: 32,
   fontWeight: 700,
   fontFamily: vars.font.barlow,
+  "@media": {
+    "(max-width: 479px)": { fontSize: 26 },
+  },
 });
 
 export const pageSubtitle = style({

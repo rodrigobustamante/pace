@@ -176,12 +176,19 @@ export const prEmpty = style({
 
 export const annualGrid = style({
   display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
+  gridTemplateColumns: "repeat(1, 1fr)",
   gap: 12,
   marginBottom: 24,
   "@media": {
     "screen and (min-width: 480px)": { gridTemplateColumns: "repeat(3, 1fr)" },
     "screen and (min-width: 640px)": { gridTemplateColumns: "repeat(5, 1fr)" },
+  },
+});
+
+/** Makes the lone last card span full-width when it falls in a 2-col row */
+export const annualStatLast = style({
+  "@media": {
+    "screen and (max-width: 479px)": { gridColumn: "1 / -1" },
   },
 });
 
@@ -198,6 +205,9 @@ export const annualValue = style({
   fontFamily: vars.font.barlow,
   color: vars.color.foreground,
   lineHeight: 1,
+  "@media": {
+    "screen and (max-width: 479px)": { fontSize: 28 },
+  },
 });
 
 export const annualLabel = style({
