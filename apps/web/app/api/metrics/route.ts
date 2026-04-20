@@ -122,5 +122,85 @@ export async function GET() {
         )
       : null;
 
-  return NextResponse.json({ fitness, weeklyData, zones, maxHR: user.maxHR });
+  // --- Streaks ---
+  const allActivities = await prisma.activity.findMany({
+    where: { userId: user.id },
+    select: { date: true, distanceM: true, elevationM: true },
+    orderBy: { date: "asc" },
+  });
+
+  const activeDateSet = new Set<string>(
+    allActivities.map((a) => a.date.toISOString().split("T")[0]!),
+  );
+
+  // Current streak: count backwards from today
+  let currentStreak = 0;
+  const todayStr = new Date().toISOString().split("T")[0]!;
+  const cursor = new Date();
+  // Start from today; if today has no activity, streak is 0
+  if (activeDateSet.has(todayStr)) {
+    currentStreak = 1;
+    cursor.setDate(cursor.getDate() - 1);
+    while (activeDateSet.has(cursor.toISOString().split("T")[0]!)) {
+      currentStreak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+  }
+
+  // Longest streak: iterate sorted active dates
+  const sortedDates = Array.from(activeDateSet).sort();
+  let longestStreak = sortedDates.length > 0 ? 1 : 0;
+  let runningStreak = sortedDates.length > 0 ? 1 : 0;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prev = new Date(sortedDates[i - 1]!);
+    const curr = new Date(sortedDates[i]!);
+    const diffDays =
+      (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays === 1) {
+      runningStreak++;
+      if (runningStreak > longestStreak) longestStreak = runningStreak;
+    } else {
+      runningStreak = 1;
+    }
+  }
+
+  // --- Annual stats ---
+  const yearStart = new Date(new Date().getFullYear(), 0, 1);
+  const yearActivities = allActivities.filter((a) => a.date >= yearStart);
+
+  const annualTotalKm =
+    yearActivities.reduce((sum, a) => sum + a.distanceM / 1000, 0);
+  const annualActiveDays = new Set(
+    yearActivities.map((a) => a.date.toISOString().split("T")[0]!),
+  ).size;
+  const annualTotalElevation = yearActivities.reduce(
+    (sum, a) => sum + (a.elevationM ?? 0),
+    0,
+  );
+
+  // Completed weeks of this year up to today (at least 1)
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const completedWeeks = Math.max(
+    1,
+    Math.floor((Date.now() - yearStart.getTime()) / msPerWeek),
+  );
+  const avgWeeklyKm = annualTotalKm / completedWeeks;
+
+  return NextResponse.json({
+    fitness,
+    weeklyData,
+    zones,
+    maxHR: user.maxHR,
+    streaks: {
+      currentStreak,
+      longestStreak,
+    },
+    annualStats: {
+      totalKm: Math.round(annualTotalKm * 10) / 10,
+      totalRuns: yearActivities.length,
+      activeDays: annualActiveDays,
+      totalElevationM: Math.round(annualTotalElevation),
+      avgWeeklyKm: Math.round(avgWeeklyKm * 10) / 10,
+    },
+  });
 }
