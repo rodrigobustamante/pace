@@ -317,6 +317,11 @@ pnpm --filter @pace/db db:generate # Regenerate Prisma client
 pnpm build                         # Build all packages
 pnpm --filter web build            # Build web app only
 
+# Tests
+pnpm test                          # Run unit tests across workspaces
+pnpm test:watch                    # Watch mode for unit tests
+pnpm test:coverage                 # Generate coverage (text + lcov)
+
 # Docker
 docker-compose up -d               # Start postgres + redis
 docker-compose down                # Stop services
