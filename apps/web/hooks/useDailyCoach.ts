@@ -22,9 +22,12 @@ export function useDailyCoach() {
     setAdvice(null);
 
     const url = invalidateCache ? "/api/coach/daily?refresh=1" : "/api/coach/daily";
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { "X-User-Timezone": tz },
+      });
       const json = await res.json();
 
       if (!res.ok || json.error) {

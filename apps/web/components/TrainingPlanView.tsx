@@ -116,7 +116,11 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
     setRegenerateError(null);
     setRegenerating(true);
     try {
-      const res = await fetch(`/api/goals/${goal.id}/regenerate`, { method: "POST" });
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch(`/api/goals/${goal.id}/regenerate`, {
+        method: "POST",
+        headers: { "X-User-Timezone": tz },
+      });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setRegenerateError(data.error ?? "No se pudo regenerar el plan");

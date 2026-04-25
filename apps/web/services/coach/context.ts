@@ -12,6 +12,52 @@ import {
   type RaceProjection,
 } from "@pace/utils";
 
+// ─── Timezone utilities ───────────────────────────────────────────────────────
+
+/** User's current date as YYYY-MM-DD in their timezone (e.g. "2026-04-25") */
+export function localDateStr(tz: string): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+}
+
+/** 0=Sun, 1=Mon … 6=Sat in the user's timezone */
+function localDayOfWeekNum(tz: string): number {
+  const name = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    weekday: "long",
+  }).format(new Date());
+  const idx = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(name);
+  return idx === -1 ? 0 : idx;
+}
+
+const ES_DAY_NAMES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+
+/** YYYY-MM-DD of the Monday that starts the current local week */
+function localWeekStartStr(tz: string): string {
+  const todayStr = localDateStr(tz);
+  const dayNum   = localDayOfWeekNum(tz);
+  const offset   = dayNum === 0 ? -6 : 1 - dayNum;
+  const [y, m, d] = todayStr.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + offset)).toISOString().split("T")[0]!;
+}
+
+/** Activity date as YYYY-MM-DD in the user's timezone */
+function actLocalStr(date: Date, tz: string): string {
+  return date.toLocaleDateString("en-CA", { timeZone: tz });
+}
+
+/** Seconds until the next local midnight (min 60 s, for cache TTL) */
+export function secsUntilLocalMidnight(tz: string): number {
+  const t = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date()); // "22:30:45"
+  const [h, min, s] = t.split(":").map(Number);
+  return Math.max(60, 86400 - (h! * 3600 + min! * 60 + s!));
+}
+
 export interface PlannedWorkout {
   date: string;
   title: string;
@@ -91,6 +137,7 @@ export async function buildGoalContext(
   userId: string,
   currentCtl = 0,
   currentAtl = 0,
+  tz = "UTC",
 ): Promise<GoalContext> {
   const goal = await prisma.goal.findFirst({
     where: { userId, isActive: true },
@@ -104,13 +151,11 @@ export async function buildGoalContext(
 
   if (!goal?.trainingPlan) return { hasGoal: false };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split("T")[0]!;
-
-  const msPerDay = 1000 * 60 * 60 * 24;
+  const todayStr = localDateStr(tz);
+  const targetDateStr = goal.targetDate.toISOString().split("T")[0]!;
   const daysUntilRace = Math.ceil(
-    (goal.targetDate.getTime() - today.getTime()) / msPerDay,
+    (new Date(targetDateStr).getTime() - new Date(todayStr).getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   const days = goal.trainingPlan.days;
@@ -128,9 +173,12 @@ export async function buildGoalContext(
       d.workoutType !== "unknown",
   );
 
-  const sevenDaysLater = new Date(today.getTime() + 7 * msPerDay);
+  const [ty, tm, td] = todayStr.split("-").map(Number);
+  const sevenDaysLaterStr = new Date(Date.UTC(ty!, tm! - 1, td! + 7))
+    .toISOString()
+    .split("T")[0]!;
   const upcomingWeek = futureDays
-    .filter((d) => d.date <= sevenDaysLater)
+    .filter((d) => d.date.toISOString().split("T")[0]! <= sevenDaysLaterStr)
     .map((d) => ({
       date: d.date.toISOString().split("T")[0]!,
       title: d.title,
@@ -167,7 +215,7 @@ export async function buildGoalContext(
       currentCtl,
       currentAtl,
       todayStr,
-      goal.targetDate.toISOString().split("T")[0]!,
+      targetDateStr,
       planWorkouts,
     );
   }
@@ -176,7 +224,7 @@ export async function buildGoalContext(
     hasGoal: true,
     goalTitle: goal.title,
     goalType: goal.goalType,
-    targetDate: goal.targetDate.toISOString().split("T")[0]!,
+    targetDate: targetDateStr,
     daysUntilRace,
     todayWorkout: toPlanned(todayDay),
     nextWorkout: toPlanned(nextWorkoutDay),
@@ -248,7 +296,7 @@ export interface DailyContext {
   overttrainingRisk: OverttrainingRisk;
 }
 
-export async function buildDailyContext(userId: string): Promise<DailyContext> {
+export async function buildDailyContext(userId: string, tz = "UTC"): Promise<DailyContext> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const thresholdHR = user.maxHR ? estimateThresholdHR(user.maxHR) : 160;
 
@@ -291,18 +339,16 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
     : tsb - prev.tsb < -1 ? "declining"
     : "stable";
 
-  // This week (Mon–today)
+  // This week (Mon–today) in the user's timezone
   const now = new Date();
-  const dayOfWeekNum = now.getDay();
-  const mondayOffset = dayOfWeekNum === 0 ? -6 : 1 - dayOfWeekNum;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + mondayOffset);
-  weekStart.setHours(0, 0, 0, 0);
+  const todayStr  = localDateStr(tz);
+  const dayNum    = localDayOfWeekNum(tz);
+  const dayOfWeek = ES_DAY_NAMES[dayNum]!;
+  const weekStartStr = localWeekStartStr(tz);
 
-  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const dayOfWeek = dayNames[dayOfWeekNum]!;
-
-  const thisWeekActs = allActivities.filter((a) => a.date >= weekStart);
+  const thisWeekActs = allActivities.filter(
+    (a) => actLocalStr(a.date, tz) >= weekStartStr,
+  );
 
   const weeklyKm = thisWeekActs.reduce((s, a) => s + a.distanceM / 1000, 0);
   const weeklyTSS = Math.round(
@@ -323,8 +369,12 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
   // Last activity
   const lastAct = allActivities[allActivities.length - 1] ?? null;
   const msPerDay = 1000 * 60 * 60 * 24;
-  const daysAgo = lastAct
-    ? Math.floor((now.getTime() - lastAct.date.getTime()) / msPerDay)
+  const lastActDateStr = lastAct ? actLocalStr(lastAct.date, tz) : null;
+  const daysAgo = lastActDateStr
+    ? Math.round(
+        (new Date(todayStr).getTime() - new Date(lastActDateStr).getTime()) /
+          msPerDay,
+      )
     : 999;
 
   const lastActivity = lastAct
@@ -340,28 +390,28 @@ export async function buildDailyContext(userId: string): Promise<DailyContext> {
       }
     : null;
 
-  // Consecutive run days (looking back from yesterday)
-  const activeDays = new Set(allActivities.map((a) => a.date.toISOString().split("T")[0]!));
+  // Consecutive run days (looking back from yesterday in user's timezone)
+  const activeDays = new Set(allActivities.map((a) => actLocalStr(a.date, tz)));
   let consecutiveRunDays = 0;
-  const check = new Date(now);
-  check.setDate(check.getDate() - 1);
-  while (activeDays.has(check.toISOString().split("T")[0]!)) {
+  const [cty, ctm, ctd] = todayStr.split("-").map(Number);
+  const checkCursor = new Date(Date.UTC(cty!, ctm! - 1, ctd! - 1));
+  while (activeDays.has(checkCursor.toISOString().split("T")[0]!)) {
     consecutiveRunDays++;
-    check.setDate(check.getDate() - 1);
+    checkCursor.setUTCDate(checkCursor.getUTCDate() - 1);
   }
 
   const rCtl = Math.round(ctl);
   const rAtl = Math.round(atl);
   const rTsb = Math.round(tsb);
 
-  const goal = await buildGoalContext(userId, rCtl, rAtl);
+  const goal = await buildGoalContext(userId, rCtl, rAtl, tz);
   const overttrainingRisk = assessOverttrainingRisk(rCtl, rAtl, rTsb, consecutiveRunDays);
 
   return {
     userName: user.name,
     maxHR: user.maxHR,
     thresholdHR,
-    todayDate: now.toISOString().split("T")[0]!,
+    todayDate: todayStr,
     dayOfWeek,
     ctl: rCtl,
     atl: rAtl,
@@ -432,7 +482,7 @@ function buildLongRunRecovery(
   };
 }
 
-export async function buildWeeklyContext(userId: string): Promise<WeeklyContext> {
+export async function buildWeeklyContext(userId: string, tz = "UTC"): Promise<WeeklyContext> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
   const thresholdHR = user.maxHR ? estimateThresholdHR(user.maxHR) : 160;
@@ -486,28 +536,22 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
           ? "declining"
           : "stable";
 
-  // This week boundaries (Mon–Sun)
+  // This week boundaries (Mon–Sun) in the user's timezone
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + mondayOffset);
-  weekStart.setHours(0, 0, 0, 0);
+  const weekStartStr = localWeekStartStr(tz);
+  const [wsy, wsm, wsd] = weekStartStr.split("-").map(Number);
+  const weekEndStr      = new Date(Date.UTC(wsy!, wsm! - 1, wsd! + 6)).toISOString().split("T")[0]!;
+  const prevWeekStartStr = new Date(Date.UTC(wsy!, wsm! - 1, wsd! - 7)).toISOString().split("T")[0]!;
+  const prevWeekEndStr   = new Date(Date.UTC(wsy!, wsm! - 1, wsd! - 1)).toISOString().split("T")[0]!;
 
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-
-  const prevWeekStart = new Date(weekStart);
-  prevWeekStart.setDate(weekStart.getDate() - 7);
-  const prevWeekEnd = new Date(weekStart);
-  prevWeekEnd.setMilliseconds(-1);
-
-  const thisWeekActs = allActivities.filter(
-    (a) => a.date >= weekStart && a.date <= weekEnd,
-  );
-  const prevWeekActs = allActivities.filter(
-    (a) => a.date >= prevWeekStart && a.date <= prevWeekEnd,
-  );
+  const thisWeekActs = allActivities.filter((a) => {
+    const d = actLocalStr(a.date, tz);
+    return d >= weekStartStr && d <= weekEndStr;
+  });
+  const prevWeekActs = allActivities.filter((a) => {
+    const d = actLocalStr(a.date, tz);
+    return d >= prevWeekStartStr && d <= prevWeekEndStr;
+  });
 
   const weeklyKm =
     thisWeekActs.reduce((s, a) => s + a.distanceM / 1000, 0);
@@ -549,12 +593,12 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
       ? Math.round(((weeklyKm - prevWeekKm) / prevWeekKm) * 100)
       : 0;
 
-  // Last 3 activities
+  // Last 3 activities (dates in user's timezone)
   const recentActivities = allActivities
     .slice(-3)
     .reverse()
     .map((a) => ({
-      date: a.date.toISOString().split("T")[0]!,
+      date: actLocalStr(a.date, tz),
       name: a.name,
       km: mToKm(a.distanceM),
       pace: secToPace(a.paceSeckm),
@@ -590,7 +634,7 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
   const rAtl = Math.round(atl);
   const rTsb = Math.round(tsb);
 
-  const goal = await buildGoalContext(userId, rCtl, rAtl);
+  const goal = await buildGoalContext(userId, rCtl, rAtl, tz);
   const overttrainingRisk = assessOverttrainingRisk(rCtl, rAtl, rTsb, 0); // weekly doesn't track consecutive days
   const longRunRecovery = buildLongRunRecovery(allActivities, thresholdHR);
 
@@ -602,8 +646,8 @@ export async function buildWeeklyContext(userId: string): Promise<WeeklyContext>
     atl: rAtl,
     tsb: rTsb,
     tsbTrend,
-    weekStart: weekStart.toISOString().split("T")[0]!,
-    weekEnd: weekEnd.toISOString().split("T")[0]!,
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr,
     weeklyKm,
     activitiesCount: thisWeekActs.length,
     weeklyTSS,

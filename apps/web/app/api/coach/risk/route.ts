@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildDailyContext } from "@/services/coach/context";
+import { buildDailyContext, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 /**
@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const today = new Date().toISOString().split("T")[0]!;
+  const tz = req.headers.get("X-User-Timezone") ?? "UTC";
+  const today = localDateStr(tz);
   const cacheKey = `coach:risk:${user.id}:${today}`;
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // buildDailyContext already computes overttrainingRisk and goal.raceProjection
-    const ctx = await buildDailyContext(user.id);
+    const ctx = await buildDailyContext(user.id, tz);
 
     const result = {
       overttrainingRisk: ctx.overttrainingRisk,

@@ -46,9 +46,13 @@ export function GoalForm() {
     setGenerating(true);
 
     try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await fetch("/api/goals", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Timezone": tz,
+        },
         body: JSON.stringify({ title: title || DEFAULT_TITLES[goalType], goalType, targetDate }),
       });
       const data = (await res.json()) as { error?: string };

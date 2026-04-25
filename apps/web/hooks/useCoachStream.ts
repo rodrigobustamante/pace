@@ -24,9 +24,12 @@ export function useCoachStream() {
     const url = invalidateCache
       ? "/api/coach/weekly?refresh=1"
       : "/api/coach/weekly";
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { "X-User-Timezone": tz },
+      });
       const json = await res.json();
 
       if (!res.ok || json.error) {

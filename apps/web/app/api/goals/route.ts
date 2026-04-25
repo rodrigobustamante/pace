@@ -89,6 +89,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  const tz = req.headers.get("X-User-Timezone") ?? "UTC";
+
   // Generate training plan with Gemini
   try {
     const plan = await generateAndPersistTrainingPlan({
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
       goalTitle: goal.title,
       goalTargetDate: parsedDate,
       replaceExisting: false,
+      timezone: tz,
     });
 
     return Response.json({ goal, plan });

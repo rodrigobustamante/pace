@@ -17,7 +17,10 @@ export function useCoachRisk() {
   const { data, isLoading, error, refetch } = useQuery<CoachRiskResponse>({
     queryKey: ["coach-risk"],
     queryFn: async () => {
-      const res = await fetch("/api/coach/risk");
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch("/api/coach/risk", {
+        headers: { "X-User-Timezone": tz },
+      });
       if (!res.ok) throw new Error("Error cargando señales del coach");
       return res.json() as Promise<CoachRiskResponse>;
     },

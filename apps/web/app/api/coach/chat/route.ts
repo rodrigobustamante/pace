@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext, formatGoalForPrompt } from "@/services/coach/context";
+import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
   const history: HistoryTurn[] = raw ? (JSON.parse(raw) as HistoryTurn[]) : [];
 
   // Build system prompt with athlete context
-  const ctx = await buildWeeklyContext(user.id);
+  const tz = req.headers.get("X-User-Timezone") ?? "UTC";
+  const ctx = await buildWeeklyContext(user.id, tz);
 
   const goalBlock = formatGoalForPrompt(ctx.goal);
   const riskLine =

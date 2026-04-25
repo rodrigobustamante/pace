@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { PrismaClient } from "@pace/db";
 import type { RunType } from "@pace/types";
-import { buildWeeklyContext } from "@/services/coach/context";
+import { buildWeeklyContext, localDateStr } from "@/services/coach/context";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -28,6 +28,8 @@ export interface GenerateTrainingPlanParams {
   replaceExisting?: boolean;
   /** Líneas extra para el coach (cumplimiento, notas) */
   coachNotes?: string[];
+  /** IANA timezone string from the client (e.g. "America/Santiago") */
+  timezone?: string;
 }
 
 export async function generateAndPersistTrainingPlan(
@@ -41,14 +43,15 @@ export async function generateAndPersistTrainingPlan(
     goalTargetDate,
     replaceExisting,
     coachNotes,
+    timezone = "UTC",
   } = params;
 
   if (replaceExisting) {
     await prisma.trainingPlan.deleteMany({ where: { goalId } });
   }
 
-  const ctx = await buildWeeklyContext(userId);
-  const today = new Date().toISOString().split("T")[0]!;
+  const ctx = await buildWeeklyContext(userId, timezone);
+  const today = localDateStr(timezone);
   const raceDate = goalTargetDate.toISOString().split("T")[0]!;
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysUntilRace = Math.ceil(

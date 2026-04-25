@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildDailyContext, formatGoalForPrompt } from "@/services/coach/context";
+import {
+  buildDailyContext,
+  formatGoalForPrompt,
+  localDateStr,
+  secsUntilLocalMidnight,
+} from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -24,9 +29,10 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const today = new Date().toISOString().split("T")[0]!;
+  const tz    = req.headers.get("X-User-Timezone") ?? "UTC";
+  const today = localDateStr(tz);
   const cacheKey = `coach:daily:${user.id}:${today}`;
-  const refresh = req.nextUrl.searchParams.get("refresh") === "1";
+  const refresh  = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
     await redis.del(cacheKey);
@@ -38,7 +44,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const ctx = await buildDailyContext(user.id);
+    const ctx = await buildDailyContext(user.id, tz);
 
     const lastActLines = ctx.lastActivity
       ? `- Last run: ${ctx.lastActivity.name} (${ctx.lastActivity.daysAgo === 0 ? "today" : ctx.lastActivity.daysAgo === 1 ? "yesterday" : `${ctx.lastActivity.daysAgo} days ago`}) — ${ctx.lastActivity.km}km @ ${ctx.lastActivity.pace}/km, HR ${ctx.lastActivity.avgHR ?? "—"}bpm, TSS ${ctx.lastActivity.tss ?? "—"}`
@@ -87,11 +93,8 @@ Should the athlete train or rest today? Generate the daily recommendation in JSO
     const raw = result.response.text();
     const parsed = JSON.parse(raw) as Record<string, unknown>;
 
-    // Cache until end of day
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    const ttl = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+    // Cache until end of the user's local day
+    const ttl = secsUntilLocalMidnight(tz);
     await redis.setex(cacheKey, ttl, JSON.stringify(parsed));
 
     return NextResponse.json(parsed);

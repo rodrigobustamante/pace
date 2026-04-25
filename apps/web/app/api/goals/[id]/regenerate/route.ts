@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateAndPersistTrainingPlan } from "@/services/goals/trainingPlanGeneration";
+import { localDateStr } from "@/services/coach/context";
 
 function dayKeyUtc(d: Date): string {
   return d.toISOString().split("T")[0]!;
@@ -78,7 +79,8 @@ export async function POST(
     );
   }
 
-  const todayStr = new Date().toISOString().split("T")[0]!;
+  const tz = _req.headers.get("X-User-Timezone") ?? "UTC";
+  const todayStr = localDateStr(tz);
   const existingDays = goal.trainingPlan?.days ?? [];
   const fromApp = buildComplianceNotes(existingDays, todayStr);
   const coachNotes =
@@ -97,6 +99,7 @@ export async function POST(
       goalTargetDate: goal.targetDate,
       replaceExisting: true,
       coachNotes,
+      timezone: tz,
     });
 
     return Response.json({ goal, plan });

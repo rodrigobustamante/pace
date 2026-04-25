@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext, formatGoalForPrompt } from "@/services/coach/context";
+import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -41,18 +41,21 @@ function extractJSON(raw: string): Record<string, unknown> {
   return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
 }
 
-function getWeekKey(): string {
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  return startOfWeek.toISOString().split("T")[0]!;
+/** Cache key = Monday of the user's current local week (resets on their Monday) */
+function getWeekKey(tz: string): string {
+  const todayStr = localDateStr(tz);           // "2026-04-25"
+  const [y, m, d] = todayStr.split("-").map(Number);
+  const jsDay = new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay(); // 0=Sun..6=Sat
+  const offset = jsDay === 0 ? -6 : 1 - jsDay; // days back to Monday
+  return new Date(Date.UTC(y!, m! - 1, d! + offset)).toISOString().split("T")[0]!;
 }
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const cacheKey = `coach:weekly:${user.id}:${getWeekKey()}`;
+  const tz = req.headers.get("X-User-Timezone") ?? "UTC";
+  const cacheKey = `coach:weekly:${user.id}:${getWeekKey(tz)}`;
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
