@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
+import {
+  buildWeeklyContext,
+  formatGoalForPrompt,
+} from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -31,9 +34,13 @@ export async function POST(req: NextRequest) {
   let message: string;
   let conversationId: string;
   try {
-    const body = await req.json() as { message?: unknown; conversationId?: unknown };
+    const body = (await req.json()) as {
+      message?: unknown;
+      conversationId?: unknown;
+    };
     message = typeof body.message === "string" ? body.message.trim() : "";
-    conversationId = typeof body.conversationId === "string" ? body.conversationId : "";
+    conversationId =
+      typeof body.conversationId === "string" ? body.conversationId : "";
   } catch {
     return new Response(JSON.stringify({ error: "Invalid body" }), {
       status: 400,
@@ -42,10 +49,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (!message || !conversationId) {
-    return new Response(JSON.stringify({ error: "message and conversationId required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "message and conversationId required" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   // Load history from Redis
