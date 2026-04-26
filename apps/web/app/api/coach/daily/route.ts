@@ -11,9 +11,19 @@ import { redis } from "@/lib/redis";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-const DAILY_SYSTEM_PROMPT = `You are an expert running coach. Based on the athlete's current training load and fatigue data, recommend whether they should train or rest TODAY.
-Be direct and concrete. Reference the actual numbers. Avoid generalities.
-Always respond in Spanish.
+const DAILY_SYSTEM_PROMPT = `You are an expert running coach advising a serious recreational runner.
+The athlete has an active training plan. Your job is to evaluate whether TODAY's planned session should be executed as-is, adjusted, or replaced with rest — based on their current physiological state.
+
+Decision hierarchy (apply in order):
+1. If the plan prescribes rest today (workoutType "unknown") → always recommend rest.
+2. If the plan prescribes a workout today → follow it UNLESS one of these hard stops applies:
+   a. TSB < -20 (severe accumulated fatigue) → replace with easy session or rest.
+   b. Consecutive run days ≥ 5 → force a rest day.
+   c. ATL is more than 2× CTL → overreaching risk, recommend rest.
+3. Mild fatigue (TSB between -5 and -20) is NORMAL in a training block — do NOT use it alone to override the plan. Instead, suggest adjusting intensity within the planned session type.
+4. If no plan exists, base the recommendation purely on the physiological data.
+
+Be direct and concrete. Reference actual numbers. Avoid generalities. Always respond in Spanish.
 Respond ONLY in valid JSON with this exact structure, no extra text:
 {
   "recommendation": "train" | "rest",
@@ -78,7 +88,8 @@ ${riskBlock}
 Training goal & plan:
 ${goalBlock}
 
-Should the athlete train or rest today? Generate the daily recommendation in JSON. If overtraining signals are present, they MUST influence the recommendation — consider recommending rest or a very easy session regardless of the plan. If there is an active goal, check if today has a planned workout and evaluate whether fatigue allows executing it.`;
+Generate the daily recommendation in JSON following the decision hierarchy in your instructions.
+If a planned workout exists for today, it is the default — deviate from it only if the hard-stop criteria are met (TSB < -20, consecutive days ≥ 5, or ATL > 2× CTL). Cite the specific numbers that justify your decision.`;
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
