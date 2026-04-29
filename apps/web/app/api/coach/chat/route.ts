@@ -6,6 +6,7 @@ import {
   formatGoalForPrompt,
 } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
+import { cookies } from "next/headers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -64,30 +65,33 @@ export async function POST(req: NextRequest) {
   const history: HistoryTurn[] = raw ? (JSON.parse(raw) as HistoryTurn[]) : [];
 
   // Build system prompt with athlete context
+  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
   const ctx = await buildWeeklyContext(user.id, tz);
 
   const goalBlock = formatGoalForPrompt(ctx.goal);
+  const langInstruction =
+    locale === "en" ? "Always respond in English." : "Siempre responde en español.";
   const riskLine =
     ctx.overttrainingRisk.level !== "ok"
-      ? `⚠️ Señales de sobreentrenamiento (${ctx.overttrainingRisk.level}): ${ctx.overttrainingRisk.signals.join(" · ")}`
-      : "Sin señales de sobreentrenamiento.";
+      ? `⚠️ Overtraining signals (${ctx.overttrainingRisk.level}): ${ctx.overttrainingRisk.signals.join(" · ")}`
+      : "No overtraining signals.";
 
-  const systemInstruction = `Eres el coach personal de running de ${ctx.userName}. Tienes acceso completo a sus datos de entrenamiento.
-Responde preguntas específicas sobre su entrenamiento, rendimiento, recuperación y mejora.
-Sé directo, concreto y usa los datos reales del atleta en tus respuestas. Siempre responde en español.
-Si algo no está en los datos disponibles, dilo claramente sin inventar.
+  const systemInstruction = `You are the personal running coach of ${ctx.userName}. You have full access to their training data.
+Answer specific questions about their training, performance, recovery, and improvement.
+Be direct, concrete, and use the athlete's real data in your responses. ${langInstruction}
+If something is not in the available data, say so clearly without making things up.
 
-Datos actuales del atleta:
-- FC máxima: ${ctx.maxHR ?? "no configurada"} bpm | FC umbral: ${ctx.thresholdHR} bpm
-- Zonas: ${ctx.zoneRanges}
-- Forma actual — CTL: ${ctx.ctl} | ATL: ${ctx.atl} | TSB: ${ctx.tsb} (${ctx.tsbTrend})
-- Esta semana (${ctx.weekStart} → ${ctx.weekEnd}): ${ctx.weeklyKm.toFixed(1)} km, ${ctx.activitiesCount} sesiones, TSS ${ctx.weeklyTSS}
-- Ritmo medio: ${ctx.avgPaceFormatted} min/km | FC media: ${ctx.avgHR} bpm
-- Semana anterior: ${ctx.prevWeekKm.toFixed(1)} km, TSS ${ctx.prevWeekTSS} (${ctx.volumeChangePct > 0 ? "+" : ""}${ctx.volumeChangePct}% volumen)
-- Distribución de zonas (90 días): ${ctx.zoneDistribution}
-- Últimas 3 actividades:
-${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, FC ${a.avgHR ?? "—"}bpm`).join("\n")}
+Current athlete data:
+- Max HR: ${ctx.maxHR ?? "not set"} bpm | Threshold HR: ${ctx.thresholdHR} bpm
+- Zones: ${ctx.zoneRanges}
+- Current form — CTL: ${ctx.ctl} | ATL: ${ctx.atl} | TSB: ${ctx.tsb} (${ctx.tsbTrend})
+- This week (${ctx.weekStart} → ${ctx.weekEnd}): ${ctx.weeklyKm.toFixed(1)} km, ${ctx.activitiesCount} sessions, TSS ${ctx.weeklyTSS}
+- Avg pace: ${ctx.avgPaceFormatted} min/km | Avg HR: ${ctx.avgHR} bpm
+- Previous week: ${ctx.prevWeekKm.toFixed(1)} km, TSS ${ctx.prevWeekTSS} (${ctx.volumeChangePct > 0 ? "+" : ""}${ctx.volumeChangePct}% volume)
+- Zone distribution (90 days): ${ctx.zoneDistribution}
+- Last 3 activities:
+${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a.pace}/km, HR ${a.avgHR ?? "—"}bpm`).join("\n")}
 - ${riskLine}
 
 ${goalBlock}`;

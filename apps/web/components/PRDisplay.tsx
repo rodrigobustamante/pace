@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import * as mx from "@/styles/metricsExtra.css";
 
 interface PRRecord {
@@ -26,9 +27,9 @@ interface RecordsResponse {
   longestRun: LongestRun | null;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -50,6 +51,8 @@ function PRCard({ label, children }: PRCardProps) {
 }
 
 export function PRDisplay() {
+  const locale = useLocale();
+  const t = useTranslations("metrics.prs");
   const { data, isLoading } = useQuery<RecordsResponse>({
     queryKey: ["metrics-records"],
     queryFn: () => fetch("/api/metrics/records").then((r) => r.json()),
@@ -87,15 +90,15 @@ export function PRDisplay() {
           <PRCard key={record.distance} label={record.distance}>
             <div className={mx.prTime}>{record.timeFormatted}</div>
             <div className={mx.prPace}>{record.pace} /km</div>
-            <div className={mx.prDate}>{formatDate(record.date)}</div>
+            <div className={mx.prDate}>{formatDate(record.date, locale)}</div>
           </PRCard>
         );
       })}
 
       {data.longestRun && (
-        <PRCard label="Más larga">
+        <PRCard label={t("longestRun")}>
           <div className={mx.prTime}>{data.longestRun.km.toFixed(1)} km</div>
-          <div className={mx.prDate}>{formatDate(data.longestRun.date)}</div>
+          <div className={mx.prDate}>{formatDate(data.longestRun.date, locale)}</div>
         </PRCard>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { secToPace, secToDuration, mToKm } from "@pace/utils";
 import * as styles from "@/styles/activityRow.css";
 import * as grid from "@/styles/dashboardGrid.css";
@@ -21,28 +22,13 @@ interface Activity {
   feel: number | null;
 }
 
-const typeConfig: Record<
-  string,
-  { label: string; color: string; bg: string }
-> = {
-  easy: { label: "Fácil", color: "#4ade80", bg: "rgba(74,222,128,0.12)" },
-  tempo: { label: "Tempo", color: "#fb923c", bg: "rgba(251,146,60,0.12)" },
-  long: {
-    label: "Long Run",
-    color: "#60a5fa",
-    bg: "rgba(96,165,250,0.12)",
-  },
-  workout: {
-    label: "Workout",
-    color: "#f472b6",
-    bg: "rgba(244,114,182,0.12)",
-  },
-  race: {
-    label: "Carrera",
-    color: "#facc15",
-    bg: "rgba(250,204,21,0.12)",
-  },
-  unknown: { label: "Run", color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
+const typeColors: Record<string, { color: string; bg: string }> = {
+  easy:    { color: "#4ade80", bg: "rgba(74,222,128,0.12)" },
+  tempo:   { color: "#fb923c", bg: "rgba(251,146,60,0.12)" },
+  long:    { color: "#60a5fa", bg: "rgba(96,165,250,0.12)" },
+  workout: { color: "#f472b6", bg: "rgba(244,114,182,0.12)" },
+  race:    { color: "#facc15", bg: "rgba(250,204,21,0.12)" },
+  unknown: { color: "#94a3b8", bg: "rgba(148,163,184,0.12)" },
 };
 
 interface ActivityRowProps {
@@ -51,20 +37,16 @@ interface ActivityRowProps {
 
 export function ActivityRow({ activity: act }: ActivityRowProps) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = typeConfig[act.type] ?? typeConfig.unknown!;
+  const t = useTranslations("activities");
+  const locale = useLocale();
+  const colors = typeColors[act.type] ?? typeColors.unknown!;
+  const typeLabel = t(`types.${act.type}` as Parameters<typeof t>[0]) ?? act.type;
 
-  const dateStr =
-    act.date instanceof Date
-      ? act.date.toLocaleDateString("es", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
-      : new Date(act.date).toLocaleDateString("es", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        });
+  const dateStr = new Date(act.date).toLocaleDateString(locale, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
     <div
@@ -76,8 +58,8 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
         <div
           className={styles.typeIcon}
           style={{
-            background: cfg.bg,
-            border: `1px solid ${cfg.color}30`,
+            background: colors.bg,
+            border: `1px solid ${colors.color}30`,
           }}
         >
           🏃
@@ -87,25 +69,19 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
             <span className={styles.title}>{act.name}</span>
             <span
               className={styles.typeBadge}
-              style={{ background: cfg.bg, color: cfg.color }}
+              style={{ background: colors.bg, color: colors.color }}
             >
-              {cfg.label}
+              {typeLabel}
             </span>
           </div>
           <div className={styles.dateLine}>{dateStr}</div>
         </div>
         <div className={grid.actStatsFull}>
           {[
-            { v: `${mToKm(act.distanceM)} km`, l: "Distancia" },
+            { v: `${mToKm(act.distanceM)} km`, l: t("stats.distance") },
             { v: secToPace(act.paceSeckm) + "/km", l: "Pace" },
-            {
-              v: act.avgHRbpm ? `${act.avgHRbpm} bpm` : "—",
-              l: "FC prom",
-            },
-            {
-              v: act.cadenceRpm ? `${act.cadenceRpm} ppm` : "—",
-              l: "Cadencia",
-            },
+            { v: act.avgHRbpm ? `${act.avgHRbpm} bpm` : "—", l: t("stats.hrAvg") },
+            { v: act.cadenceRpm ? `${act.cadenceRpm} ppm` : "—", l: t("stats.cadence") },
           ].map((m) => (
             <div key={m.l} className={styles.statCol}>
               <div className={styles.statValue}>{m.v}</div>
@@ -128,7 +104,7 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
                   />
                 ))}
               </div>
-              <div className={styles.feelLabel}>Sensación</div>
+              <div className={styles.feelLabel}>{t("stats.feel")}</div>
             </div>
           )}
         </div>
@@ -149,19 +125,10 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
       {expanded && (
         <div className={`${styles.expandSection} ${grid.actExpandGrid}`}>
           {[
-            { l: "Duración", v: secToDuration(act.durationSec) },
-            {
-              l: "Elevación",
-              v: act.elevationM != null ? `+${Math.round(act.elevationM)}m` : "—",
-            },
-            {
-              l: "Calorías",
-              v: act.caloriesKcal ? `${act.caloriesKcal} kcal` : "—",
-            },
-            {
-              l: "FC máx",
-              v: act.maxHRbpm ? `${act.maxHRbpm} bpm` : "—",
-            },
+            { l: t("stats.duration"), v: secToDuration(act.durationSec) },
+            { l: t("stats.elevation"), v: act.elevationM != null ? `+${Math.round(act.elevationM)}m` : "—" },
+            { l: t("stats.calories"), v: act.caloriesKcal ? `${act.caloriesKcal} kcal` : "—" },
+            { l: t("stats.hrMax"), v: act.maxHRbpm ? `${act.maxHRbpm} bpm` : "—" },
           ].map((m) => (
             <div key={m.l} className={styles.expandCell}>
               <div className={styles.expandValue}>{m.v}</div>

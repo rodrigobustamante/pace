@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 import { useCoachChat, type ChatMessage } from "@/hooks/useCoachChat";
 import * as cc from "@/styles/coachChat.css";
 
@@ -97,13 +98,6 @@ function inlineMarkdown(text: string, baseKey: number): ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "¿Debería aumentar el volumen esta semana?",
-  "¿Cómo está mi forma actual?",
-  "¿Cuándo puedo hacer un entrenamiento de calidad?",
-  "¿Qué ritmo debería llevar en mi próximo fondo?",
-];
-
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
 
@@ -125,6 +119,8 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export function CoachChat() {
+  const t = useTranslations("coach");
+  const suggestedQuestions = t.raw("suggestedQuestions") as string[];
   const { messages, isStreaming, send, reset } = useCoachChat();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -155,14 +151,14 @@ export function CoachChat() {
     <div className={cc.root}>
       <div className={cc.header}>
         <div className={cc.headerLeft}>
-          <span className={cc.headerTitle}>Chat con el coach</span>
+          <span className={cc.headerTitle}>{t("chatPanelTitle")}</span>
           {isStreaming ? (
-            <span className={cc.headerStatus}>escribiendo...</span>
+            <span className={cc.headerStatus}>{t("chatTyping")}</span>
           ) : null}
         </div>
         {!isEmpty ? (
           <button type="button" onClick={reset} className={cc.resetBtn}>
-            Nueva conversación
+            {t("chatReset")}
           </button>
         ) : null}
       </div>
@@ -170,9 +166,9 @@ export function CoachChat() {
       <div className={cc.messages}>
         {isEmpty ? (
           <div className={cc.emptyWrap}>
-            <div className={cc.emptyHint}>Pregúntame sobre tu entrenamiento</div>
+            <div className={cc.emptyHint}>{t("chatEmptyHint")}</div>
             <div className={cc.suggestedCol}>
-              {SUGGESTED_QUESTIONS.map((q) => (
+              {suggestedQuestions.map((q) => (
                 <button
                   key={q}
                   type="button"
@@ -203,7 +199,7 @@ export function CoachChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu pregunta... (Enter para enviar)"
+          placeholder={t("chatPlaceholder")}
           rows={1}
           className={cc.textarea}
         />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import * as h from "@/styles/hrZonesSetup.css";
 
 export function HRZonesSetup({
@@ -17,12 +18,13 @@ export function HRZonesSetup({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+  const t = useTranslations("hrZones");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const maxHR = parseInt(value, 10);
     if (isNaN(maxHR) || maxHR < 100 || maxHR > 250) {
-      setError("Ingresa un valor entre 100 y 250 bpm");
+      setError(t("errorRange"));
       return;
     }
     setSaving(true);
@@ -37,7 +39,7 @@ export function HRZonesSetup({
       setEditing(false);
       queryClient.invalidateQueries({ queryKey: ["metrics"] });
     } else {
-      setError("Error al guardar. Intenta de nuevo.");
+      setError(t("errorSave"));
     }
   }
 
@@ -46,7 +48,7 @@ export function HRZonesSetup({
       <div className={h.panel}>
         <div className={h.emoji}>❤️</div>
         <div>
-          <div className={h.labelCaps}>FC Máxima</div>
+          <div className={h.labelCaps}>{t("maxHR")}</div>
           <div className={h.valueLarge}>
             {currentMaxHR}{" "}
             <span className={h.valueUnit}>bpm</span>
@@ -54,7 +56,7 @@ export function HRZonesSetup({
         </div>
         {settingsHref ? (
           <Link href={settingsHref} className={h.ghostBtn}>
-            Modificar en Perfil
+            {t("editInProfile")}
           </Link>
         ) : (
           <button
@@ -66,7 +68,7 @@ export function HRZonesSetup({
             }}
             className={h.ghostBtn}
           >
-            Modificar
+            {t("edit")}
           </button>
         )}
       </div>
@@ -78,11 +80,9 @@ export function HRZonesSetup({
       <div className={h.emoji}>❤️</div>
       <div>
         <div className={h.titleMd}>
-          {currentMaxHR ? "Modificar FC máx" : "Configura tu FC máx"}
+          {currentMaxHR ? t("editTitle") : t("setupTitle")}
         </div>
-        <div className={h.help}>
-          Necesaria para calcular tus zonas de entrenamiento
-        </div>
+        <div className={h.help}>{t("help")}</div>
       </div>
 
       <form onSubmit={handleSubmit} className={h.formRow}>
@@ -90,7 +90,7 @@ export function HRZonesSetup({
           type="number"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="ej. 185"
+          placeholder={t("placeholder")}
           min={100}
           max={250}
           autoFocus
@@ -101,7 +101,7 @@ export function HRZonesSetup({
           disabled={saving}
           className={`${h.submitBtn} ${saving ? h.submitBtnDisabled : ""}`}
         >
-          {saving ? "..." : "Guardar"}
+          {saving ? "..." : t("save")}
         </button>
         {currentMaxHR ? (
           <button

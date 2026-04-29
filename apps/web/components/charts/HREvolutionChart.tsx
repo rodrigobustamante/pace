@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   AreaChart,
   Area,
@@ -18,11 +19,14 @@ interface WeeklyData {
 }
 
 export function HREvolutionChart({ data }: { data: WeeklyData[] }) {
+  const t = useTranslations("charts");
+
   return (
     <div className={c.root}>
-      <div className={c.kickerAlt}>FC Promedio</div>
+      <div className={c.kickerAlt}>{t("avgHRTitle")}</div>
       <div className={c.titleLg}>
-        Ritmo cardíaco <span className={c.accentGreen}>estable</span>
+        {t("hrRhythm")}{" "}
+        <span className={c.accentGreen}>{t("hrStableAccent")}</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data}>
@@ -51,7 +55,7 @@ export function HREvolutionChart({ data }: { data: WeeklyData[] }) {
           <Area
             type="monotone"
             dataKey="avgHR"
-            name="FC prom"
+            name={t("avgHRSeries")}
             stroke="#4ade80"
             fill="url(#hrGrad)"
             strokeWidth={2}

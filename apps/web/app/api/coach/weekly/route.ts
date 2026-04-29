@@ -3,14 +3,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
 import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
+import { cookies } from "next/headers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-const COACH_SYSTEM_PROMPT = `You are an expert, personalized running coach in the style of Runna.
+function buildWeeklySystemPrompt(lang: string) {
+  const langInstruction = lang === "en" ? "Always respond in English." : "Always respond in Spanish.";
+  return `You are an expert, personalized running coach in the style of Runna.
 You analyze real athlete data and give concrete, personalized, actionable advice.
 Avoid generalities. Be direct and specific.
 The athlete is a serious recreational runner who trains with data and wants to improve consistently.
-Always respond in Spanish.
+${langInstruction}
 Respond ONLY in valid JSON with this exact structure, no extra text:
 {
   "summary": "string — 2-3 sentences on current status",
@@ -29,6 +32,7 @@ Rules:
 - Specify the best day to do it relative to runs (e.g. "el miércoles, al menos 6h después del rodaje" or "el día de descanso")
 - Focus on unilateral exercises (single-leg) to correct asymmetries common in runners
 - Keep the body field concise: list the exercises directly, one per line or separated by "·"`;
+}
 
 /** Extracts the first valid JSON object from a Gemini response.
  *  Handles thinking tokens, markdown fences, and extra prose. */
@@ -54,8 +58,9 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
-  const cacheKey = `coach:weekly:${user.id}:${getWeekKey(tz)}`;
+  const cacheKey = `coach:weekly:${user.id}:${getWeekKey(tz)}:${locale}`;
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
@@ -72,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: COACH_SYSTEM_PROMPT,
+      systemInstruction: buildWeeklySystemPrompt(locale),
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.4,

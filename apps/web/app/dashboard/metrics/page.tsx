@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { PaceEvolutionChart } from "@/components/charts/PaceEvolutionChart";
 import { HREvolutionChart } from "@/components/charts/HREvolutionChart";
 import { LoadChart } from "@/components/charts/LoadChart";
@@ -54,6 +55,7 @@ function formatElevation(m: number): string {
 }
 
 export default function MetricsPage() {
+  const t = useTranslations("metrics");
   const { data: metrics, isLoading } = useQuery<MetricsResponse>({
     queryKey: ["metrics"],
     queryFn: () => fetch("/api/metrics").then((r) => r.json()),
@@ -75,18 +77,18 @@ export default function MetricsPage() {
   return (
     <div>
       <div className={s.pageHeaderBlock}>
-        <div className={s.pageTitle}>Métricas de evolución</div>
+        <div className={s.pageTitle}>{t("title")}</div>
         <div className={s.pageSubtitle}>
           {totalWeeks > 0
-            ? `${totalWeeks} semanas · ${firstWeek} → ${lastWeek}`
-            : "Cargando datos..."}
+            ? t("subtitleLoaded", { weeks: totalWeeks, first: firstWeek, last: lastWeek })
+            : t("subtitleLoading")}
         </div>
       </div>
 
       {/* ── Año en números ───────────────────────────────────────────────── */}
       <div className={mx.sectionBlock}>
-        <div className={s.sectionLabel}>Resumen anual</div>
-        <div className={mx.sectionHeading}>Año en números</div>
+        <div className={s.sectionLabel}>{t("annual.label")}</div>
+        <div className={mx.sectionHeading}>{t("annual.heading")}</div>
 
         {isLoading || !annualStats ? (
           <>
@@ -107,27 +109,27 @@ export default function MetricsPage() {
                 <div className={mx.annualValue}>
                   {annualStats.totalKm.toFixed(0)}
                 </div>
-                <div className={mx.annualLabel}>km totales</div>
+                <div className={mx.annualLabel}>{t("annual.totalKm")}</div>
               </div>
               <div className={mx.annualStat}>
                 <div className={mx.annualValue}>{annualStats.totalRuns}</div>
-                <div className={mx.annualLabel}>salidas</div>
+                <div className={mx.annualLabel}>{t("annual.runs")}</div>
               </div>
               <div className={mx.annualStat}>
                 <div className={mx.annualValue}>{annualStats.activeDays}</div>
-                <div className={mx.annualLabel}>días activos</div>
+                <div className={mx.annualLabel}>{t("annual.activeDays")}</div>
               </div>
               <div className={mx.annualStat}>
                 <div className={mx.annualValue}>
                   {formatElevation(annualStats.totalElevationM)}
                 </div>
-                <div className={mx.annualLabel}>desnivel</div>
+                <div className={mx.annualLabel}>{t("annual.elevation")}</div>
               </div>
               <div className={`${mx.annualStat} ${mx.annualStatLast}`}>
                 <div className={mx.annualValue}>
                   {annualStats.avgWeeklyKm.toFixed(1)}
                 </div>
-                <div className={mx.annualLabel}>km/semana</div>
+                <div className={mx.annualLabel}>{t("annual.weeklyKm")}</div>
               </div>
             </div>
 
@@ -136,12 +138,12 @@ export default function MetricsPage() {
                 <div className={mx.streakCard}>
                   <div className={mx.streakFire}>🔥</div>
                   <div className={mx.streakNumber}>{streaks.currentStreak}</div>
-                  <div className={mx.streakLabel}>racha actual (días)</div>
+                  <div className={mx.streakLabel}>{t("annual.currentStreak")}</div>
                 </div>
                 <div className={mx.streakCard}>
                   <div className={mx.streakFire}>⚡</div>
                   <div className={mx.streakNumber}>{streaks.longestStreak}</div>
-                  <div className={mx.streakLabel}>mejor racha (días)</div>
+                  <div className={mx.streakLabel}>{t("annual.bestStreak")}</div>
                 </div>
               </div>
             )}
@@ -151,17 +153,17 @@ export default function MetricsPage() {
 
       {/* ── Personal Records ─────────────────────────────────────────────── */}
       <div className={mx.sectionBlock}>
-        <div className={s.sectionLabel}>Marcas personales</div>
-        <div className={mx.sectionHeading}>Personal Records</div>
-        <div className={mx.sectionSub}>Mejor tiempo registrado por distancia</div>
+        <div className={s.sectionLabel}>{t("prs.label")}</div>
+        <div className={mx.sectionHeading}>{t("prs.heading")}</div>
+        <div className={mx.sectionSub}>{t("prs.sub")}</div>
         <PRDisplay />
       </div>
 
       {/* ── Actividad del año ────────────────────────────────────────────── */}
       <div className={mx.sectionBlock}>
-        <div className={s.sectionLabel}>Historial</div>
-        <div className={mx.sectionHeading}>Actividad del año</div>
-        <div className={mx.sectionSub}>Kilómetros por día — últimas 52 semanas</div>
+        <div className={s.sectionLabel}>{t("heatmap.label")}</div>
+        <div className={mx.sectionHeading}>{t("heatmap.heading")}</div>
+        <div className={mx.sectionSub}>{t("heatmap.sub")}</div>
         <ActivityHeatmap />
       </div>
 
@@ -179,19 +181,16 @@ export default function MetricsPage() {
           <LoadChart data={weeklyData} />
 
           <div className={s.cardSubtle}>
-            <div className={s.sectionLabel}>Predicciones de carrera</div>
-            <div className={s.sectionTitleSm}>Race predictor</div>
+            <div className={s.sectionLabel}>{t("predictor.label")}</div>
+            <div className={s.sectionTitleSm}>{t("predictor.heading")}</div>
             {predictions?.predictions.length === 0 && (
-              <div className={s.mutedText13}>
-                Necesitas al menos una carrera de más de 3km para predecir
-                tiempos.
-              </div>
+              <div className={s.mutedText13}>{t("predictor.empty")}</div>
             )}
             {predictions?.predictions.map((pred) => (
               <div key={pred.distance} className={s.predictionRow}>
                 <div className={s.predictionLeft}>
                   <div className={s.predictionBadge}>{pred.distance}</div>
-                  <div className={s.predictionHint}>Proyectado (Riegel)</div>
+                  <div className={s.predictionHint}>{t("predictor.projected")}</div>
                 </div>
                 <div className={s.predictionTime}>
                   {pred.predictedTimeFormatted}

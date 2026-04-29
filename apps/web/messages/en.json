@@ -1,0 +1,268 @@
+{
+  "shell": {
+    "tabs": {
+      "overview": "Overview",
+      "activities": "Activities",
+      "metrics": "Metrics",
+      "coach": "AI Coach",
+      "plan": "Plan"
+    },
+    "synced": "Synced",
+    "profileTitle": "Profile",
+    "logout": "Log out"
+  },
+  "dashboard": {
+    "thisWeek": "This week",
+    "greeting": "Good morning,",
+    "greetingRunner": "runner",
+    "stats": {
+      "weeklyKm": "Weekly km",
+      "weeklyKmUp": "↑ {pct}% vs previous week",
+      "weeklyKmDown": "↓ {pct}% vs previous week",
+      "weeklyKmFirst": "first week recorded",
+      "avgPace": "Avg pace",
+      "avgPaceSub": "min/km · last run",
+      "avgHR": "Avg HR",
+      "avgHRSub": "bpm · last run",
+      "form": "Form (TSB)"
+    },
+    "radar": {
+      "volume": "Volume",
+      "consistency": "Consistency",
+      "intensity": "Intensity",
+      "recovery": "Recovery",
+      "cadence": "Cadence",
+      "economy": "Economy"
+    },
+    "coachBanner": {
+      "title": "AI Coach · Analysis available",
+      "body": "Get your personalized weekly analysis based on your real Strava data.",
+      "cta": "View analysis →"
+    }
+  },
+  "activities": {
+    "title": "Recent activities",
+    "subtitleLoaded": "{total} sessions synced from Strava",
+    "subtitleLoading": "Loading activities...",
+    "empty": {
+      "title": "No activities yet",
+      "body": "Syncing from Strava may take a few minutes."
+    },
+    "prev": "← Previous",
+    "next": "Next →",
+    "stats": {
+      "distance": "Distance",
+      "hrAvg": "Avg HR",
+      "cadence": "Cadence",
+      "duration": "Duration",
+      "elevation": "Elevation",
+      "calories": "Calories",
+      "hrMax": "Max HR",
+      "feel": "Feel"
+    },
+    "types": {
+      "easy": "Easy",
+      "tempo": "Tempo",
+      "long": "Long Run",
+      "workout": "Workout",
+      "race": "Race",
+      "unknown": "Run"
+    }
+  },
+  "charts": {
+    "weeklyVolume": "Weekly volume",
+    "kmUnit": "km",
+    "volumeTrendAccent": "↑ trend",
+    "weeklyLoad": "Weekly load",
+    "tssStackTitle": "TSS",
+    "tssStackAccent": "· cumulative stress",
+    "athleticProfile": "Athletic profile",
+    "balance": "Balance",
+    "radarLegendTitle": "What each axis means",
+    "radarLegendFoot": "Scale 0–100 relative to internal dashboard references, not population percentiles. Cadence and economy on the radar use placeholder values until they are computed from your activities.",
+    "radarVolumeBody": "Average weekly kilometers (last 4 weeks) compared to ~80 km as a high weekly reference (100 on the chart).",
+    "radarConsistencyBody": "Weeks with logged activity compared to ~12 weeks as a reference for consistency over time.",
+    "radarIntensityBody": "Last week’s load (TSS) compared to ~150 TSS as a demanding-week reference.",
+    "radarRecoveryBody": "Current form (TSB): higher values mean more room to train; negative values mean more accumulated fatigue.",
+    "radarCadenceBody": "Steps per minute (technique and leg turnover). Usually assessed in steady running; typical ranges depend on height and pace.",
+    "radarEconomyBody": "Running economy: how efficient you are at submaximal paces (lower physiological cost at the same pace; labs measure this with oxygen uptake). Here it is indicative until linked to your HR/pace series.",
+    "sportsForm": "Fitness & form",
+    "fitnessCaption": "Fitness · Fatigue · Form",
+    "seriesFitness": "Fitness",
+    "seriesFatigue": "Fatigue",
+    "seriesForm": "Form",
+    "hrDistribution": "HR distribution",
+    "zones": "Zones",
+    "zoneStyles": ["Base", "Aerobic", "Threshold", "VO2max", "Neuromuscular"],
+    "paceEvolution": "Pace evolution",
+    "paceTrend": "Trend",
+    "avgPaceSeries": "Avg pace",
+    "avgHRTitle": "Avg HR",
+    "hrRhythm": "Heart rate",
+    "hrStableAccent": "steady",
+    "avgHRSeries": "Avg HR",
+    "trainingLoad": "Training load",
+    "tssProgressiveAccent": "progressive",
+    "seriesLoad": "Load",
+    "heatmapLoading": "Loading…",
+    "heatmapLess": "Less",
+    "heatmapMore": "More",
+    "heatmapRunsOne": "1 run",
+    "heatmapRunsMany": "{count} runs",
+    "heatmapNoActivity": "No activity",
+    "heatmapDayRowLabels": ["", "Mon", "", "Wed", "", "Fri", ""]
+  },
+  "metrics": {
+    "title": "Evolution metrics",
+    "subtitleLoaded": "{weeks} weeks · {first} → {last}",
+    "subtitleLoading": "Loading data...",
+    "annual": {
+      "label": "Annual summary",
+      "heading": "Year in numbers",
+      "totalKm": "total km",
+      "runs": "runs",
+      "activeDays": "active days",
+      "elevation": "elevation",
+      "weeklyKm": "km/week",
+      "currentStreak": "current streak (days)",
+      "bestStreak": "best streak (days)"
+    },
+    "prs": {
+      "label": "Personal records",
+      "heading": "Personal Records",
+      "sub": "Best time recorded by distance",
+      "longestRun": "Longest"
+    },
+    "heatmap": {
+      "label": "History",
+      "heading": "Year activity",
+      "sub": "Kilometers per day — last 52 weeks",
+      "kicker": "Heat map"
+    },
+    "predictor": {
+      "label": "Race predictions",
+      "heading": "Race predictor",
+      "empty": "You need at least one run over 3km to predict times.",
+      "projected": "Projected (Riegel)"
+    }
+  },
+  "coach": {
+    "title": "AI Coach",
+    "subtitle": "Personalized analysis based on your Strava data",
+    "generating": "Generating...",
+    "regenerate": "↻ Regenerate",
+    "daily": {
+      "label": "Daily advice",
+      "analyzing": "Analyzing your current form...",
+      "sessions": {
+        "easy": "Easy run",
+        "tempo": "Tempo",
+        "long": "Long run",
+        "workout": "Intervals"
+      }
+    },
+    "risk": {
+      "danger": "Overtraining risk",
+      "warning": "High fatigue signals"
+    },
+    "projection": {
+      "label": "Race day projection",
+      "daysUntil": "in {days}d",
+      "formGood": "✅ Optimal race form",
+      "formOk": "🟡 Acceptable form",
+      "formBad": "🔴 You'll arrive fatigued"
+    },
+    "weeklySummary": "Weekly summary",
+    "strengthLabel": "Strength for runners",
+    "footer": "Analysis valid for this week · auto-regenerates every Monday",
+    "chatTitle": "Ask your coach",
+    "chatPanelTitle": "Chat with your coach",
+    "chatReset": "New conversation",
+    "chatEmptyHint": "Ask me about your training",
+    "chatPlaceholder": "Write your question… (Enter to send)",
+    "chatTyping": "typing…",
+    "suggestedQuestions": [
+      "Should I increase volume this week?",
+      "How is my current fitness?",
+      "When can I do a quality session?",
+      "What pace should I aim for on my next long run?"
+    ],
+    "empty": {
+      "title": "Not enough data yet",
+      "body": "Sync at least one week of training from Strava to activate the AI coach."
+    }
+  },
+  "plan": {
+    "title": "Training",
+    "titleAccent": "plan",
+    "subtitle": "{days} days toward your goal",
+    "subtitleEmpty": "Create a goal to generate your personalized plan",
+    "zones": {
+      "z1": "Z1 Recovery",
+      "z2": "Z2 Aerobic",
+      "z3": "Z3 Aerobic threshold",
+      "z4": "Z4 High threshold",
+      "z5": "Z5 VO2max"
+    },
+    "goalTypes": {
+      "race_5k": "5K",
+      "race_10k": "10K",
+      "half_marathon": "Half Marathon",
+      "marathon": "Marathon",
+      "custom": "Custom"
+    },
+    "view": {
+      "deleteConfirm": "Delete this goal and its training plan?",
+      "regenerateConfirm": "Regenerate plan from today? The current plan will be replaced with a new one based on your current form and what you logged on past days.",
+      "regenerating": "Regenerating...",
+      "regeneratePlan": "Regenerate plan",
+      "deleting": "Deleting...",
+      "changeGoal": "Change goal",
+      "regenerateError": "Could not regenerate the plan",
+      "connectionError": "Connection error",
+      "executionRule": "Execution rule: if pace and zone don't match, prioritize the target zone and adjust pace for that day.",
+      "zonesTitle": "Heart rate zones",
+      "zonesHint": "Set your max HR in your profile to see the exact Z1–Z5 ranges.",
+      "planUnavailable": "Plan not available",
+      "planUnavailableBody": "Could not generate the plan. Delete the goal and try again.",
+      "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec"
+    }
+  },
+  "settings": {
+    "title": "Profile",
+    "subtitle": "Configure your data for personalized calculations",
+    "connectedWith": "Connected with Strava",
+    "hrSection": "Heart rate",
+    "languageSection": "Language",
+    "languageLabel": "App language"
+  },
+  "hrZones": {
+    "maxHR": "Max HR",
+    "editInProfile": "Edit in Profile",
+    "edit": "Edit",
+    "editTitle": "Edit max HR",
+    "setupTitle": "Set up your max HR",
+    "help": "Needed to calculate your training zones",
+    "placeholder": "e.g. 185",
+    "save": "Save",
+    "errorRange": "Enter a value between 100 and 250 bpm",
+    "errorSave": "Save error. Try again."
+  },
+  "goalForm": {
+    "title": "New goal",
+    "sub": "Tell me about your next race and the coach will create a personalized training plan.",
+    "raceTypeLabel": "Race type",
+    "goalNameLabel": "Goal name",
+    "goalNamePlaceholder": "E.g.: 10K Valencia",
+    "raceDateLabel": "Race date",
+    "submitIdle": "Create training plan",
+    "submitLoading": "Generating plan...",
+    "errorNoDate": "Select a date for your goal",
+    "errorCreate": "Error creating goal",
+    "errorConnection": "Connection error",
+    "generating": {
+      "title": "Generating your plan",
+      "body": "The coach is analyzing your history and creating a personalized plan for your goal. This may take a few seconds."
+    }
+  }
+}

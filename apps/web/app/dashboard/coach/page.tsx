@@ -3,6 +3,7 @@
 import { useCoachStream } from "@/hooks/useCoachStream";
 import { useDailyCoach } from "@/hooks/useDailyCoach";
 import { useCoachRisk } from "@/hooks/useCoachRisk";
+import { useTranslations } from "next-intl";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { CoachChat } from "@/components/CoachChat";
 import { SkeletonCard } from "@/components/SkeletonCard";
@@ -74,6 +75,7 @@ function StaggeredCard({
 
 function OverttrainingBanner() {
   const { risk, isLoading } = useCoachRisk();
+  const t = useTranslations("coach");
   if (isLoading || !risk || risk.level === "ok") return null;
 
   const isDanger = risk.level === "danger";
@@ -82,7 +84,7 @@ function OverttrainingBanner() {
       <span className={cp.riskIcon}>{isDanger ? "🚨" : "⚠️"}</span>
       <div className={cp.riskContent}>
         <div className={`${cp.riskTitle} ${isDanger ? cp.riskTitleDanger : cp.riskTitleWarning}`}>
-          {isDanger ? "Riesgo de sobreentrenamiento" : "Señales de fatiga elevada"}
+          {isDanger ? t("risk.danger") : t("risk.warning")}
         </div>
         <div className={cp.riskSignals}>{risk.signals.join(" · ")}</div>
       </div>
@@ -94,6 +96,7 @@ function OverttrainingBanner() {
 
 function RaceProjectionCard() {
   const { raceProjection, isLoading } = useCoachRisk();
+  const t = useTranslations("coach");
   if (isLoading || !raceProjection?.projection) return null;
 
   const { goalTitle, targetDate, daysUntilRace, projection } = raceProjection;
@@ -105,9 +108,9 @@ function RaceProjectionCard() {
     : cp.projectionValueNegative;
 
   const formLabel =
-    projectedTSB >= 5 ? "✅ Forma óptima para competir"
-    : projectedTSB >= -10 ? "🟡 Forma aceptable"
-    : "🔴 Llegás con fatiga";
+    projectedTSB >= 5 ? t("projection.formGood")
+    : projectedTSB >= -10 ? t("projection.formOk")
+    : t("projection.formBad");
 
   const formClass =
     projectedTSB >= 5 ? cp.projectionFormGood
@@ -118,10 +121,10 @@ function RaceProjectionCard() {
     <div className={cp.projectionCard}>
       <div className={cp.projectionHeader}>
         <div>
-          <div className={cp.projectionLabel}>Proyección al día de carrera</div>
+          <div className={cp.projectionLabel}>{t("projection.label")}</div>
           <div className={cp.projectionRace}>{goalTitle}</div>
         </div>
-        <div className={cp.projectionDays}>{targetDate} · en {daysUntilRace}d</div>
+        <div className={cp.projectionDays}>{targetDate} · {t("projection.daysUntil", { days: daysUntilRace })}</div>
       </div>
       <div className={cp.projectionMetrics}>
         <div className={cp.projectionMetric}>
@@ -148,15 +151,9 @@ function RaceProjectionCard() {
   );
 }
 
-const SESSION_TYPE_LABELS: Record<string, string> = {
-  easy: "Rodaje suave",
-  tempo: "Tempo",
-  long: "Tirada larga",
-  workout: "Series",
-};
-
 function DailyAdviceCard() {
   const { advice, isLoading, error, refetch } = useDailyCoach();
+  const t = useTranslations("coach");
 
   const isRest = advice?.recommendation === "rest";
   const accentColor = isRest ? "#60a5fa" : "#4ade80";
@@ -172,7 +169,7 @@ function DailyAdviceCard() {
           <span
             className={`${cp.dailyLabel} ${isRest ? cp.dailyLabelRest : cp.dailyLabelTrain}`}
           >
-            Consejo del día
+            {t("daily.label")}
           </span>
         </div>
         {!isLoading ? (
@@ -190,7 +187,7 @@ function DailyAdviceCard() {
         <div className={cp.loadRow}>
           <div className={cp.spinLoader} />
           <span className={shared.mutedText13}>
-            Analizando tu forma actual...
+            {t("daily.analyzing")}
           </span>
         </div>
       ) : null}
@@ -224,8 +221,7 @@ function DailyAdviceCard() {
                       border: `1px solid ${accentColor}30`,
                     }}
                   >
-                    {SESSION_TYPE_LABELS[advice.sessionType] ??
-                      advice.sessionType}
+                    {t(`daily.sessions.${advice.sessionType}` as Parameters<typeof t>[0]) ?? advice.sessionType}
                   </span>
                 ) : null}
                 {advice.duration ? (
@@ -245,6 +241,7 @@ function DailyAdviceCard() {
 
 export default function CoachPage() {
   const { insights, isLoading, error, refetch } = useCoachStream();
+  const t = useTranslations("coach");
 
   const insightCards = insights
     ? [
@@ -262,9 +259,7 @@ export default function CoachPage() {
           <div className={cp.pageTitle}>
             Coach <span className={cp.accentOrange}>IA</span>
           </div>
-          <div className={cp.pageSub}>
-            Análisis personalizado basado en tus datos de Strava
-          </div>
+          <div className={cp.pageSub}>{t("subtitle")}</div>
         </div>
         <button
           type="button"
@@ -275,10 +270,10 @@ export default function CoachPage() {
           {isLoading ? (
             <span className={cp.regenRow}>
               <span className={cp.spinSm} />
-              Generando...
+              {t("generating")}
             </span>
           ) : (
-            "↻ Regenerar"
+            t("regenerate")
           )}
         </button>
       </div>
@@ -335,7 +330,7 @@ export default function CoachPage() {
             <div className={cp.weeklyRow}>
               <div className={cp.weeklyEmoji}>📊</div>
               <div>
-                <div className={cp.weeklyHeading}>Resumen semanal</div>
+                <div className={cp.weeklyHeading}>{t("weeklySummary")}</div>
                 <div className={cp.weeklyText}>
                   <TypewriterText text={insights.summary} />
                 </div>
@@ -359,7 +354,7 @@ export default function CoachPage() {
             <StaggeredCard index={4}>
               <div className={cp.complementarySection}>
                 <div className={cp.complementarySectionLabel}>
-                  Fuerza para runners
+                  {t("strengthLabel")}
                 </div>
                 <CoachInsightCard
                   type="complementary"
@@ -371,28 +366,20 @@ export default function CoachPage() {
           )}
 
           <div className={cp.footerNote}>
-            <span className={cp.footerMono}>
-              Análisis válido para esta semana · se regenera automáticamente
-              cada lunes
-            </span>
+            <span className={cp.footerMono}>{t("footer")}</span>
             <span className={cp.footerMono}>gemini-2.5-flash</span>
           </div>
 
           <div className={cp.chatSection}>
-            <div className={cp.chatSectionTitle}>Pregúntale a tu coach</div>
+            <div className={cp.chatSectionTitle}>{t("chatTitle")}</div>
             <CoachChat />
           </div>
         </>
       ) : !error ? (
         <div className={cp.emptyCoach}>
           <div className={shared.emptyStateEmojiLg}>🤖</div>
-          <div className={shared.emptyStateTitleLg}>
-            Sin suficientes datos todavía
-          </div>
-          <div className={shared.emptyStateBodyNarrow}>
-            Sincroniza al menos una semana de entrenamientos desde Strava para
-            activar el coach IA.
-          </div>
+          <div className={shared.emptyStateTitleLg}>{t("empty.title")}</div>
+          <div className={shared.emptyStateBodyNarrow}>{t("empty.body")}</div>
         </div>
       ) : null}
     </div>

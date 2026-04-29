@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations, useLocale } from "next-intl";
 import { StatCard } from "@/components/StatCard";
 import { VolumeChart } from "@/components/charts/VolumeChart";
 import { FitnessChart } from "@/components/charts/FitnessChart";
@@ -46,6 +47,9 @@ interface ActivitiesResponse {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard");
+  const locale = useLocale();
+
   const { data: metrics, isLoading: loadingMetrics } =
     useQuery<MetricsResponse>({
       queryKey: ["metrics"],
@@ -77,37 +81,17 @@ export default function DashboardPage() {
   const recentWeeks = metrics?.weeklyData?.slice(-4) ?? [];
   const avgKm =
     recentWeeks.reduce((s, w) => s + w.km, 0) / (recentWeeks.length || 1);
+
   const radarData = [
-    {
-      metric: "Volumen",
-      value: Math.min(100, Math.round((avgKm / 80) * 100)),
-    },
-    {
-      metric: "Consistencia",
-      value: Math.min(100, Math.round((totalWeeks / 12) * 100)),
-    },
-    {
-      metric: "Intensidad",
-      value: Math.min(
-        100,
-        Math.round(((lastWeekData?.tss ?? 0) / 150) * 100),
-      ),
-    },
-    {
-      metric: "Recuperación",
-      value: tsb > 0 ? Math.min(100, 60 + tsb * 2) : Math.max(20, 60 + tsb),
-    },
-    {
-      metric: "Cadencia",
-      value: 72,
-    },
-    {
-      metric: "Economía",
-      value: 68,
-    },
+    { metric: t("radar.volume"), value: Math.min(100, Math.round((avgKm / 80) * 100)) },
+    { metric: t("radar.consistency"), value: Math.min(100, Math.round((totalWeeks / 12) * 100)) },
+    { metric: t("radar.intensity"), value: Math.min(100, Math.round(((lastWeekData?.tss ?? 0) / 150) * 100)) },
+    { metric: t("radar.recovery"), value: tsb > 0 ? Math.min(100, 60 + tsb * 2) : Math.max(20, 60 + tsb) },
+    { metric: t("radar.cadence"), value: 72 },
+    { metric: t("radar.economy"), value: 68 },
   ];
 
-  const today = new Date().toLocaleDateString("es", {
+  const today = new Date().toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -116,10 +100,10 @@ export default function DashboardPage() {
   return (
     <div>
       <div className={`${grid.fadeUp1} ${shared.heroBlock}`}>
-        <div className={shared.heroMeta}>Esta semana · {today}</div>
+        <div className={shared.heroMeta}>{t("thisWeek")} · {today}</div>
         <div className={grid.heroTitle}>
-          Buenos días,{" "}
-          <span className={shared.accentOrange}>corredor</span>
+          {t("greeting")}{" "}
+          <span className={shared.accentOrange}>{t("greetingRunner")}</span>
         </div>
       </div>
 
@@ -134,35 +118,31 @@ export default function DashboardPage() {
         ) : (
           <>
             <StatCard
-              label="Km esta semana"
+              label={t("stats.weeklyKm")}
               value={lastWeekData ? `${lastWeekData.km.toFixed(1)}` : "—"}
               sub={
                 weekPct != null
-                  ? `${weekPct > 0 ? "↑" : "↓"} ${Math.abs(weekPct)}% vs semana anterior`
-                  : "primera semana registrada"
+                  ? weekPct > 0
+                    ? t("stats.weeklyKmUp", { pct: Math.abs(weekPct) })
+                    : t("stats.weeklyKmDown", { pct: Math.abs(weekPct) })
+                  : t("stats.weeklyKmFirst")
               }
               accent="#fb923c"
             />
             <StatCard
-              label="Pace promedio"
-              value={
-                lastActivity ? secToPace(lastActivity.paceSeckm) : "—"
-              }
-              sub="min/km · último run"
+              label={t("stats.avgPace")}
+              value={lastActivity ? secToPace(lastActivity.paceSeckm) : "—"}
+              sub={t("stats.avgPaceSub")}
               accent="#60a5fa"
             />
             <StatCard
-              label="FC promedio"
-              value={
-                lastActivity?.avgHRbpm
-                  ? `${lastActivity.avgHRbpm}`
-                  : "—"
-              }
-              sub="bpm · último run"
+              label={t("stats.avgHR")}
+              value={lastActivity?.avgHRbpm ? `${lastActivity.avgHRbpm}` : "—"}
+              sub={t("stats.avgHRSub")}
               accent="#4ade80"
             />
             <StatCard
-              label="Forma (TSB)"
+              label={t("stats.form")}
               value={`${tsb > 0 ? "+" : ""}${tsb}`}
               sub={tsbLabel(tsb)}
               accent={tsb < -5 ? "#f97316" : "#e879f9"}
@@ -210,17 +190,12 @@ export default function DashboardPage() {
         <div className={`${shared.coachBannerRow} ${grid.coachBannerInner}`}>
           <div className={shared.emoji28}>🤖</div>
           <div className={shared.flex1}>
-            <div className={shared.coachBannerTitle}>
-              Coach IA · Análisis disponible
-            </div>
-            <div className={shared.coachBannerBody}>
-              Obtén tu análisis semanal personalizado basado en tus datos reales
-              de Strava.
-            </div>
+            <div className={shared.coachBannerTitle}>{t("coachBanner.title")}</div>
+            <div className={shared.coachBannerBody}>{t("coachBanner.body")}</div>
           </div>
           <div className={grid.coachBannerBtn}>
             <Link href="/dashboard/coach" className={shared.coachCtaLink}>
-              Ver análisis →
+              {t("coachBanner.cta")}
             </Link>
           </div>
         </div>

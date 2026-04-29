@@ -7,6 +7,7 @@ import {
   PolarAngleAxis,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslations } from "next-intl";
 import * as c from "@/styles/chartCard.css";
 
 interface RadarData {
@@ -14,38 +15,32 @@ interface RadarData {
   value: number;
 }
 
-const RADAR_LEGEND: Array<{ name: string; body: string }> = [
-  {
-    name: "Volumen",
-    body: "Kilometraje medio por semana (últimas 4 semanas) frente a ~80 km como referencia alta (100 en el gráfico).",
-  },
-  {
-    name: "Consistencia",
-    body: "Semanas con actividad registrada frente a ~12 semanas como referencia de constancia en el tiempo.",
-  },
-  {
-    name: "Intensidad",
-    body: "Carga de la última semana (TSS) frente a ~150 TSS como referencia de semana exigente.",
-  },
-  {
-    name: "Recuperación",
-    body: "Forma actual (TSB): valores más altos indican más margen para entrenar; negativos, más fatiga acumulada.",
-  },
-  {
-    name: "Cadencia",
-    body: "Pasos por minuto (técnica y ritmo de pierna). Suele mirarse en carrera continua; rangos típicos dependen de altura y ritmo.",
-  },
-  {
-    name: "Economía",
-    body: "Running economy: qué tan eficiente eres a ritmos submáximos (menos coste fisiológico al mismo ritmo; en laboratorio se mide con oxígeno). Aquí es un indicador orientativo hasta enlazarlo con tus series FC/ritmo.",
-  },
-];
+const RADAR_BODY_KEYS = [
+  "radarVolumeBody",
+  "radarConsistencyBody",
+  "radarIntensityBody",
+  "radarRecoveryBody",
+  "radarCadenceBody",
+  "radarEconomyBody",
+] as const;
+
+const RADAR_NAME_KEYS = [
+  "volume",
+  "consistency",
+  "intensity",
+  "recovery",
+  "cadence",
+  "economy",
+] as const;
 
 export function RadarPerformanceChart({ data }: { data: RadarData[] }) {
+  const tChart = useTranslations("charts");
+  const tDash = useTranslations("dashboard");
+
   return (
     <div className={c.root}>
-      <div className={c.kicker}>Perfil atlético</div>
-      <div className={c.titleMb8}>Balance</div>
+      <div className={c.kicker}>{tChart("athleticProfile")}</div>
+      <div className={c.titleMb8}>{tChart("balance")}</div>
       <ResponsiveContainer width="100%" height={180}>
         <RadarChart data={data}>
           <PolarGrid stroke="rgba(255,255,255,0.08)" />
@@ -64,20 +59,21 @@ export function RadarPerformanceChart({ data }: { data: RadarData[] }) {
       </ResponsiveContainer>
 
       <div className={c.radarLegend}>
-        <div className={c.radarLegendTitle}>Qué significa cada eje</div>
+        <div className={c.radarLegendTitle}>{tChart("radarLegendTitle")}</div>
         <ul className={c.radarLegendList}>
-          {RADAR_LEGEND.map((row) => (
-            <li key={row.name} className={c.radarLegendItem}>
-              <span className={c.radarLegendName}>{row.name}:</span>
-              {row.body}
-            </li>
-          ))}
+          {RADAR_BODY_KEYS.map((bodyKey, i) => {
+            const nameKey = RADAR_NAME_KEYS[i]!;
+            return (
+              <li key={bodyKey} className={c.radarLegendItem}>
+                <span className={c.radarLegendName}>
+                  {tDash(`radar.${nameKey}`)}:
+                </span>
+                {tChart(bodyKey)}
+              </li>
+            );
+          })}
         </ul>
-        <p className={c.radarLegendFoot}>
-          Escala 0–100 respecto a referencias internas del dashboard, no percentiles
-          poblacionales. Cadencia y economía en el radar usan valores fijos de momento
-          hasta calcularlos desde tus actividades.
-        </p>
+        <p className={c.radarLegendFoot}>{tChart("radarLegendFoot")}</p>
       </div>
     </div>
   );

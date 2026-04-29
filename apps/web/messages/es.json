@@ -1,0 +1,268 @@
+{
+  "shell": {
+    "tabs": {
+      "overview": "Overview",
+      "activities": "Actividades",
+      "metrics": "Métricas",
+      "coach": "Coach IA",
+      "plan": "Plan"
+    },
+    "synced": "Sincronizado",
+    "profileTitle": "Perfil",
+    "logout": "Salir"
+  },
+  "dashboard": {
+    "thisWeek": "Esta semana",
+    "greeting": "Buenos días,",
+    "greetingRunner": "corredor",
+    "stats": {
+      "weeklyKm": "Km esta semana",
+      "weeklyKmUp": "↑ {pct}% vs semana anterior",
+      "weeklyKmDown": "↓ {pct}% vs semana anterior",
+      "weeklyKmFirst": "primera semana registrada",
+      "avgPace": "Pace promedio",
+      "avgPaceSub": "min/km · último run",
+      "avgHR": "FC promedio",
+      "avgHRSub": "bpm · último run",
+      "form": "Forma (TSB)"
+    },
+    "radar": {
+      "volume": "Volumen",
+      "consistency": "Consistencia",
+      "intensity": "Intensidad",
+      "recovery": "Recuperación",
+      "cadence": "Cadencia",
+      "economy": "Economía"
+    },
+    "coachBanner": {
+      "title": "Coach IA · Análisis disponible",
+      "body": "Obtén tu análisis semanal personalizado basado en tus datos reales de Strava.",
+      "cta": "Ver análisis →"
+    }
+  },
+  "activities": {
+    "title": "Actividades recientes",
+    "subtitleLoaded": "{total} sesiones sincronizadas desde Strava",
+    "subtitleLoading": "Cargando actividades...",
+    "empty": {
+      "title": "Sin actividades todavía",
+      "body": "La sincronización desde Strava puede tardar unos minutos."
+    },
+    "prev": "← Anterior",
+    "next": "Siguiente →",
+    "stats": {
+      "distance": "Distancia",
+      "hrAvg": "FC prom",
+      "cadence": "Cadencia",
+      "duration": "Duración",
+      "elevation": "Elevación",
+      "calories": "Calorías",
+      "hrMax": "FC máx",
+      "feel": "Sensación"
+    },
+    "types": {
+      "easy": "Fácil",
+      "tempo": "Tempo",
+      "long": "Long Run",
+      "workout": "Workout",
+      "race": "Carrera",
+      "unknown": "Run"
+    }
+  },
+  "charts": {
+    "weeklyVolume": "Volumen semanal",
+    "kmUnit": "km",
+    "volumeTrendAccent": "↑ tendencia",
+    "weeklyLoad": "Carga semanal",
+    "tssStackTitle": "TSS",
+    "tssStackAccent": "· estrés acumulado",
+    "athleticProfile": "Perfil atlético",
+    "balance": "Balance",
+    "radarLegendTitle": "Qué significa cada eje",
+    "radarLegendFoot": "Escala 0–100 respecto a referencias internas del dashboard, no percentiles poblacionales. Cadencia y economía en el radar usan valores fijos de momento hasta calcularlos desde tus actividades.",
+    "radarVolumeBody": "Kilometraje medio por semana (últimas 4 semanas) frente a ~80 km como referencia alta (100 en el gráfico).",
+    "radarConsistencyBody": "Semanas con actividad registrada frente a ~12 semanas como referencia de constancia en el tiempo.",
+    "radarIntensityBody": "Carga de la última semana (TSS) frente a ~150 TSS como referencia de semana exigente.",
+    "radarRecoveryBody": "Forma actual (TSB): valores más altos indican más margen para entrenar; negativos, más fatiga acumulada.",
+    "radarCadenceBody": "Pasos por minuto (técnica y ritmo de pierna). Suele mirarse en carrera continua; rangos típicos dependen de altura y ritmo.",
+    "radarEconomyBody": "Running economy: qué tan eficiente eres a ritmos submáximos (menos coste fisiológico al mismo ritmo; en laboratorio se mide con oxígeno). Aquí es un indicador orientativo hasta enlazarlo con tus series FC/ritmo.",
+    "sportsForm": "Forma deportiva",
+    "fitnessCaption": "Fitness · Fatiga · Forma",
+    "seriesFitness": "Fitness",
+    "seriesFatigue": "Fatiga",
+    "seriesForm": "Forma",
+    "hrDistribution": "Distribución FC",
+    "zones": "Zonas",
+    "zoneStyles": ["Base", "Aeróbico", "Umbral", "VO2max", "Neuromuscular"],
+    "paceEvolution": "Evolución de Pace",
+    "paceTrend": "Tendencia",
+    "avgPaceSeries": "Pace prom",
+    "avgHRTitle": "FC promedio",
+    "hrRhythm": "Ritmo cardíaco",
+    "hrStableAccent": "estable",
+    "avgHRSeries": "FC prom",
+    "trainingLoad": "Carga de entrenamiento",
+    "tssProgressiveAccent": "TSS progresivo",
+    "seriesLoad": "Carga",
+    "heatmapLoading": "Cargando…",
+    "heatmapLess": "Menos",
+    "heatmapMore": "Más",
+    "heatmapRunsOne": "1 salida",
+    "heatmapRunsMany": "{count} salidas",
+    "heatmapNoActivity": "Sin actividad",
+    "heatmapDayRowLabels": ["", "Lun", "", "Mié", "", "Vie", ""]
+  },
+  "metrics": {
+    "title": "Métricas de evolución",
+    "subtitleLoaded": "{weeks} semanas · {first} → {last}",
+    "subtitleLoading": "Cargando datos...",
+    "annual": {
+      "label": "Resumen anual",
+      "heading": "Año en números",
+      "totalKm": "km totales",
+      "runs": "salidas",
+      "activeDays": "días activos",
+      "elevation": "desnivel",
+      "weeklyKm": "km/semana",
+      "currentStreak": "racha actual (días)",
+      "bestStreak": "mejor racha (días)"
+    },
+    "prs": {
+      "label": "Marcas personales",
+      "heading": "Personal Records",
+      "sub": "Mejor tiempo registrado por distancia",
+      "longestRun": "Más larga"
+    },
+    "heatmap": {
+      "label": "Historial",
+      "heading": "Actividad del año",
+      "sub": "Kilómetros por día — últimas 52 semanas",
+      "kicker": "Mapa de calor"
+    },
+    "predictor": {
+      "label": "Predicciones de carrera",
+      "heading": "Race predictor",
+      "empty": "Necesitas al menos una carrera de más de 3km para predecir tiempos.",
+      "projected": "Proyectado (Riegel)"
+    }
+  },
+  "coach": {
+    "title": "Coach IA",
+    "subtitle": "Análisis personalizado basado en tus datos de Strava",
+    "generating": "Generando...",
+    "regenerate": "↻ Regenerar",
+    "daily": {
+      "label": "Consejo del día",
+      "analyzing": "Analizando tu forma actual...",
+      "sessions": {
+        "easy": "Rodaje suave",
+        "tempo": "Tempo",
+        "long": "Tirada larga",
+        "workout": "Series"
+      }
+    },
+    "risk": {
+      "danger": "Riesgo de sobreentrenamiento",
+      "warning": "Señales de fatiga elevada"
+    },
+    "projection": {
+      "label": "Proyección al día de carrera",
+      "daysUntil": "en {days}d",
+      "formGood": "✅ Forma óptima para competir",
+      "formOk": "🟡 Forma aceptable",
+      "formBad": "🔴 Llegás con fatiga"
+    },
+    "weeklySummary": "Resumen semanal",
+    "strengthLabel": "Fuerza para runners",
+    "footer": "Análisis válido para esta semana · se regenera automáticamente cada lunes",
+    "chatTitle": "Pregúntale a tu coach",
+    "chatPanelTitle": "Chat con el coach",
+    "chatReset": "Nueva conversación",
+    "chatEmptyHint": "Pregúntame sobre tu entrenamiento",
+    "chatPlaceholder": "Escribe tu pregunta… (Enter para enviar)",
+    "chatTyping": "escribiendo…",
+    "suggestedQuestions": [
+      "¿Debería aumentar el volumen esta semana?",
+      "¿Cómo está mi forma actual?",
+      "¿Cuándo puedo hacer un entrenamiento de calidad?",
+      "¿Qué ritmo debería llevar en mi próximo fondo?"
+    ],
+    "empty": {
+      "title": "Sin suficientes datos todavía",
+      "body": "Sincroniza al menos una semana de entrenamientos desde Strava para activar el coach IA."
+    }
+  },
+  "plan": {
+    "title": "Plan",
+    "titleAccent": "de entrenamiento",
+    "subtitle": "{days} días hacia tu objetivo",
+    "subtitleEmpty": "Crea un objetivo para generar tu plan personalizado",
+    "zones": {
+      "z1": "Z1 Recuperación",
+      "z2": "Z2 Aeróbica",
+      "z3": "Z3 Umbral aeróbico",
+      "z4": "Z4 Umbral alto",
+      "z5": "Z5 VO2max"
+    },
+    "goalTypes": {
+      "race_5k": "5K",
+      "race_10k": "10K",
+      "half_marathon": "Media Maratón",
+      "marathon": "Maratón",
+      "custom": "Personalizado"
+    },
+    "view": {
+      "deleteConfirm": "¿Eliminar este objetivo y su plan de entrenamiento?",
+      "regenerateConfirm": "¿Regenerar el plan desde hoy? Se sustituirá el plan actual por uno nuevo según tu estado y lo que marcaste en los días pasados.",
+      "regenerating": "Regenerando...",
+      "regeneratePlan": "Regenerar plan",
+      "deleting": "Eliminando...",
+      "changeGoal": "Cambiar objetivo",
+      "regenerateError": "No se pudo regenerar el plan",
+      "connectionError": "Error de conexión",
+      "executionRule": "Regla de ejecución: si ritmo y zona no coinciden, prioriza la zona objetivo y ajusta el ritmo ese día.",
+      "zonesTitle": "Zonas de frecuencia cardiaca",
+      "zonesHint": "Configura tu FC máx en tu perfil para ver los rangos exactos de Z1 a Z5.",
+      "planUnavailable": "Plan no disponible",
+      "planUnavailableBody": "No se pudo generar el plan. Elimina el objetivo e inténtalo de nuevo.",
+      "months": "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic"
+    }
+  },
+  "settings": {
+    "title": "Perfil",
+    "subtitle": "Configura tus datos para cálculos personalizados",
+    "connectedWith": "Conectado con Strava",
+    "hrSection": "Frecuencia cardíaca",
+    "languageSection": "Idioma",
+    "languageLabel": "Idioma de la app"
+  },
+  "hrZones": {
+    "maxHR": "FC Máxima",
+    "editInProfile": "Modificar en Perfil",
+    "edit": "Modificar",
+    "editTitle": "Modificar FC máx",
+    "setupTitle": "Configura tu FC máx",
+    "help": "Necesaria para calcular tus zonas de entrenamiento",
+    "placeholder": "ej. 185",
+    "save": "Guardar",
+    "errorRange": "Ingresa un valor entre 100 y 250 bpm",
+    "errorSave": "Error al guardar. Intenta de nuevo."
+  },
+  "goalForm": {
+    "title": "Nuevo objetivo",
+    "sub": "Dime cuál es tu próxima carrera y el coach creará un plan de entrenamiento personalizado.",
+    "raceTypeLabel": "Tipo de carrera",
+    "goalNameLabel": "Nombre del objetivo",
+    "goalNamePlaceholder": "Ej: 10K Valencia",
+    "raceDateLabel": "Fecha de la carrera",
+    "submitIdle": "Crear plan de entrenamiento",
+    "submitLoading": "Generando plan...",
+    "errorNoDate": "Selecciona una fecha para tu objetivo",
+    "errorCreate": "Error al crear el objetivo",
+    "errorConnection": "Error de conexión",
+    "generating": {
+      "title": "Generando tu plan",
+      "body": "El coach está analizando tu historial y creando un plan personalizado para tu objetivo. Esto puede tomar unos segundos."
+    }
+  }
+}

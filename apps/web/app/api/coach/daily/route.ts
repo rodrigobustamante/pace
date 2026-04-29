@@ -8,10 +8,14 @@ import {
   secsUntilLocalMidnight,
 } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
+import { cookies } from "next/headers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-const DAILY_SYSTEM_PROMPT = `You are an expert running coach advising a serious recreational runner.
+function buildDailySystemPrompt(lang: string) {
+  const langInstruction =
+    lang === "en" ? "Always respond in English." : "Always respond in Spanish.";
+  return `You are an expert running coach advising a serious recreational runner.
 The athlete has an active training plan. Your job is to evaluate whether TODAY's planned session should be executed as-is, adjusted, or replaced with rest — based on their current physiological state.
 
 Decision hierarchy (apply in order):
@@ -23,25 +27,27 @@ Decision hierarchy (apply in order):
 3. Mild fatigue (TSB between -5 and -20) is NORMAL in a training block — do NOT use it alone to override the plan. Instead, suggest adjusting intensity within the planned session type.
 4. If no plan exists, base the recommendation purely on the physiological data.
 
-Be direct and concrete. Reference actual numbers. Avoid generalities. Always respond in Spanish.
+Be direct and concrete. Reference actual numbers. Avoid generalities. ${langInstruction}
 Respond ONLY in valid JSON with this exact structure, no extra text:
 {
   "recommendation": "train" | "rest",
   "sessionType": "easy" | "tempo" | "long" | "workout" | null,
-  "title": "string — short headline, e.g. 'Entrena suave hoy' or 'Día de reposo recomendado'",
+  "title": "string — short headline",
   "body": "string — 2-3 sentences explaining the recommendation with specific data from the athlete",
   "duration": "string | null — e.g. '40-50 min' only when recommendation is train",
-  "intensity": "string | null — e.g. 'Z2, FC < 145 bpm' only when recommendation is train"
+  "intensity": "string | null — e.g. 'Z2, HR < 145 bpm' only when recommendation is train"
 }
 sessionType, duration, and intensity must be null when recommendation is 'rest'.`;
+}
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
   const tz    = req.headers.get("X-User-Timezone") ?? "UTC";
   const today = localDateStr(tz);
-  const cacheKey = `coach:daily:${user.id}:${today}`;
+  const cacheKey = `coach:daily:${user.id}:${today}:${locale}`;
   const refresh  = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
@@ -93,7 +99,7 @@ If a planned workout exists for today, it is the default — deviate from it onl
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: DAILY_SYSTEM_PROMPT,
+      systemInstruction: buildDailySystemPrompt(locale),
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.35,

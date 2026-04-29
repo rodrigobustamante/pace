@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   LineChart,
   Line,
@@ -19,11 +20,13 @@ interface WeeklyData {
 }
 
 export function PaceEvolutionChart({ data }: { data: WeeklyData[] }) {
+  const t = useTranslations("charts");
+
   return (
     <div className={c.root}>
-      <div className={c.kickerAlt}>Evolución de Pace</div>
+      <div className={c.kickerAlt}>{t("paceEvolution")}</div>
       <div className={c.titleLg}>
-        <span className={c.accentGreen}>Tendencia</span>
+        <span className={c.accentGreen}>{t("paceTrend")}</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data}>
@@ -49,7 +52,7 @@ export function PaceEvolutionChart({ data }: { data: WeeklyData[] }) {
           <Line
             type="monotone"
             dataKey="avgPace"
-            name="Pace prom"
+            name={t("avgPaceSeries")}
             stroke="#60a5fa"
             strokeWidth={2.5}
             dot={{ fill: "#60a5fa", r: 3 }}

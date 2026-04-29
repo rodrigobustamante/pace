@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   AreaChart,
   Area,
@@ -21,11 +22,14 @@ interface WeeklyData {
 }
 
 export function VolumeChart({ data }: { data: WeeklyData[] }) {
+  const t = useTranslations("charts");
+
   return (
     <div className={c.root}>
-      <div className={c.kicker}>Volumen semanal</div>
+      <div className={c.kicker}>{t("weeklyVolume")}</div>
       <div className={c.title}>
-        km <span className={c.accentOrange}>↑ tendencia</span>
+        {t("kmUnit")}{" "}
+        <span className={c.accentOrange}>{t("volumeTrendAccent")}</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data}>
@@ -65,9 +69,10 @@ export function VolumeChart({ data }: { data: WeeklyData[] }) {
       </ResponsiveContainer>
 
       <div className={c.stackedChartBlock}>
-        <div className={c.kicker}>Carga semanal</div>
+        <div className={c.kicker}>{t("weeklyLoad")}</div>
         <div className={c.stackedChartTitle}>
-          TSS <span className={c.stackedChartAccentBlue}>· estrés acumulado</span>
+          {t("tssStackTitle")}
+          <span className={c.stackedChartAccentBlue}>{t("tssStackAccent")}</span>
         </div>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>

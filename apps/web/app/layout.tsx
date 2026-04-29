@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Barlow_Condensed, DM_Sans, DM_Mono } from "next/font/google";
 import "@/styles/global.css";
 import { Providers } from "@/lib/providers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 const barlowCondensed = Barlow_Condensed({
   weight: ["400", "600", "700"],
@@ -41,18 +43,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${barlowCondensed.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

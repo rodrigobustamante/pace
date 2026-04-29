@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   LineChart,
   Line,
@@ -20,14 +21,15 @@ interface FitnessPoint {
 }
 
 export function FitnessChart({ data }: { data: FitnessPoint[] }) {
+  const t = useTranslations("charts");
   // Show last 60 data points for readability
   const displayData = data.slice(-60);
 
   return (
     <div className={c.root}>
-      <div className={c.kicker}>Forma deportiva</div>
+      <div className={c.kicker}>{t("sportsForm")}</div>
       <div className={c.titleMb4}>CTL · ATL · TSB</div>
-      <div className={c.chartCaption}>Fitness · Fatiga · Forma</div>
+      <div className={c.chartCaption}>{t("fitnessCaption")}</div>
       <ResponsiveContainer width="100%" height={160}>
         <LineChart data={displayData}>
           <CartesianGrid
@@ -50,7 +52,7 @@ export function FitnessChart({ data }: { data: FitnessPoint[] }) {
           <Line
             type="monotone"
             dataKey="ctl"
-            name="Fitness"
+            name={t("seriesFitness")}
             stroke="#4ade80"
             strokeWidth={2}
             dot={false}
@@ -58,7 +60,7 @@ export function FitnessChart({ data }: { data: FitnessPoint[] }) {
           <Line
             type="monotone"
             dataKey="atl"
-            name="Fatiga"
+            name={t("seriesFatigue")}
             stroke="#f87171"
             strokeWidth={2}
             dot={false}
@@ -67,7 +69,7 @@ export function FitnessChart({ data }: { data: FitnessPoint[] }) {
           <Line
             type="monotone"
             dataKey="tsb"
-            name="Forma"
+            name={t("seriesForm")}
             stroke="#e879f9"
             strokeWidth={2.5}
             dot={{ r: 3, fill: "#e879f9" }}

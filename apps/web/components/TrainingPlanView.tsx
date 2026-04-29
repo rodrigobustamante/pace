@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { TrainingDayCard } from "./TrainingDayCard";
 import type { RunType } from "@pace/types";
 import * as s from "@/styles/planPage.css";
@@ -36,14 +37,6 @@ interface Props {
   zoneRanges: string[] | null;
 }
 
-const GOAL_TYPE_LABELS: Record<string, string> = {
-  race_5k: "5K",
-  race_10k: "10K",
-  half_marathon: "Media Maratón",
-  marathon: "Maratón",
-  custom: "Personalizado",
-};
-
 function getZoneItemClass(zone: string) {
   if (zone.startsWith("Z1")) return `${s.zoneItem} ${s.zoneItemZ1}`;
   if (zone.startsWith("Z2")) return `${s.zoneItem} ${s.zoneItemZ2}`;
@@ -53,12 +46,11 @@ function getZoneItemClass(zone: string) {
   return s.zoneItem;
 }
 
-function groupByWeek(days: TrainingDayData[]): Array<{ label: string; days: TrainingDayData[] }> {
+function groupByWeek(days: TrainingDayData[], locale: string): Array<{ label: string; days: TrainingDayData[] }> {
   const weeks = new Map<string, TrainingDayData[]>();
 
   for (const day of days) {
     const date = new Date(day.date);
-    // Get Monday of the week (UTC)
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const dayOfWeek = d.getUTCDay();
     const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -70,20 +62,22 @@ function groupByWeek(days: TrainingDayData[]): Array<{ label: string; days: Trai
     weeks.set(key, existing);
   }
 
+  const fmt = (d: Date) =>
+    `${d.getUTCDate()} ${new Intl.DateTimeFormat(locale, { month: "short" }).format(d)}`;
+
   return Array.from(weeks.entries()).map(([mondayStr, wDays]) => {
     const monday = new Date(mondayStr + "T00:00:00Z");
     const sunday = new Date(monday);
     sunday.setUTCDate(monday.getUTCDate() + 6);
-
-    const fmt = (d: Date) =>
-      `${d.getUTCDate()} ${["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][d.getUTCMonth()]}`;
-
     return { label: `${fmt(monday)} – ${fmt(sunday)}`, days: wDays };
   });
 }
 
 export function TrainingPlanView({ goal, zoneRanges }: Props) {
   const router = useRouter();
+  const t = useTranslations("plan.view");
+  const tPlan = useTranslations("plan");
+  const locale = useLocale();
   const [deleting, setDeleting] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
@@ -91,7 +85,7 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
   const targetDate = new Date(goal.targetDate);
   const todayStr = new Date().toISOString().split("T")[0]!;
 
-  const formattedDate = targetDate.toLocaleDateString("es-ES", {
+  const formattedDate = targetDate.toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -99,20 +93,14 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
   });
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este objetivo y su plan de entrenamiento?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     setDeleting(true);
     await fetch(`/api/goals/${goal.id}`, { method: "DELETE" });
     router.refresh();
   }
 
   async function handleRegenerate() {
-    if (
-      !confirm(
-        "¿Regenerar el plan desde hoy? Se sustituirá el plan actual por uno nuevo según tu estado y lo que marcaste en los días pasados.",
-      )
-    ) {
-      return;
-    }
+    if (!confirm(t("regenerateConfirm"))) return;
     setRegenerateError(null);
     setRegenerating(true);
     try {
@@ -123,19 +111,19 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setRegenerateError(data.error ?? "No se pudo regenerar el plan");
+        setRegenerateError(data.error ?? t("regenerateError"));
         return;
       }
       router.refresh();
     } catch {
-      setRegenerateError("Error de conexión");
+      setRegenerateError(t("connectionError"));
     } finally {
       setRegenerating(false);
     }
   }
 
   const plan = goal.trainingPlan;
-  const weeks = plan ? groupByWeek(plan.days) : [];
+  const weeks = plan ? groupByWeek(plan.days, locale) : [];
 
   return (
     <div>
@@ -143,7 +131,7 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
         <div>
           <div className={s.goalBadge}>
             <span className={s.goalBadgeLabel}>
-              🎯 {GOAL_TYPE_LABELS[goal.goalType] ?? goal.goalType}
+              🎯 {tPlan(`goalTypes.${goal.goalType}` as Parameters<typeof tPlan>[0]) ?? goal.goalType}
             </span>
           </div>
           <div className={s.goalTitle}>{goal.title}</div>
@@ -156,7 +144,7 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
             onClick={handleRegenerate}
             disabled={regenerating || deleting}
           >
-            {regenerating ? "Regenerando..." : "Regenerar plan"}
+            {regenerating ? t("regenerating") : t("regeneratePlan")}
           </button>
           <button
             type="button"
@@ -164,20 +152,17 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
             onClick={handleDelete}
             disabled={deleting || regenerating}
           >
-            {deleting ? "Eliminando..." : "Cambiar objetivo"}
+            {deleting ? t("deleting") : t("changeGoal")}
           </button>
         </div>
       </div>
 
       {regenerateError && <div className={s.formError}>{regenerateError}</div>}
 
-      <div className={s.executionRuleBanner}>
-        <strong>Regla de ejecución:</strong> si ritmo y zona no coinciden, prioriza la
-        zona objetivo y ajusta el ritmo ese día.
-      </div>
+      <div className={s.executionRuleBanner}>{t("executionRule")}</div>
 
       <div className={s.zonesCard}>
-        <div className={s.zonesTitle}>Zonas de frecuencia cardiaca</div>
+        <div className={s.zonesTitle}>{t("zonesTitle")}</div>
         {zoneRanges ? (
           <div className={s.zonesGrid}>
             {zoneRanges.map((zone) => (
@@ -187,19 +172,15 @@ export function TrainingPlanView({ goal, zoneRanges }: Props) {
             ))}
           </div>
         ) : (
-          <div className={s.zonesHint}>
-            Configura tu FC máx en tu perfil para ver los rangos exactos de Z1 a Z5.
-          </div>
+          <div className={s.zonesHint}>{t("zonesHint")}</div>
         )}
       </div>
 
       {!plan && (
         <div className={s.generatingBox}>
           <div className={s.generatingEmoji}>🤖</div>
-          <div className={s.generatingTitle}>Plan no disponible</div>
-          <div className={s.generatingText}>
-            No se pudo generar el plan. Elimina el objetivo e inténtalo de nuevo.
-          </div>
+          <div className={s.generatingTitle}>{t("planUnavailable")}</div>
+          <div className={s.generatingText}>{t("planUnavailableBody")}</div>
         </div>
       )}
 

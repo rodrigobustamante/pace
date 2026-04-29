@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import * as mx from "@/styles/metricsExtra.css";
+import * as chartC from "@/styles/chartCard.css";
 
 interface HeatmapDay {
   date: string;
@@ -30,13 +32,6 @@ interface TooltipState {
   y: number;
 }
 
-const MONTH_NAMES = [
-  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
-];
-
-const DAY_LABELS = ["", "Lun", "", "Mié", "", "Vie", ""];
-
 function getCellColor(km: number, maxKm: number): string {
   if (km <= 0 || maxKm <= 0) return "rgba(255,255,255,0.04)";
   const ratio = km / maxKm;
@@ -59,9 +54,9 @@ function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function formatTooltipDate(isoDate: string): string {
+function formatTooltipDate(isoDate: string, locale: string): string {
   const d = new Date(`${isoDate}T12:00:00`);
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -69,7 +64,10 @@ function formatTooltipDate(isoDate: string): string {
   });
 }
 
-function buildGrid(days: HeatmapDay[]): {
+function buildGrid(
+  days: HeatmapDay[],
+  locale: string,
+): {
   weeks: Array<Array<HeatmapCell | null>>;
   monthLabels: Array<{ label: string; col: number }>;
 } {
@@ -109,7 +107,8 @@ function buildGrid(days: HeatmapDay[]): {
         const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
         if (!seenMonths.has(monthKey)) {
           seenMonths.add(monthKey);
-          monthLabels.push({ label: MONTH_NAMES[cursor.getMonth()]!, col: w });
+          const label = cursor.toLocaleDateString(locale, { month: "short" });
+          monthLabels.push({ label, col: w });
         }
       }
 
@@ -136,6 +135,10 @@ const OFFSET_Y = -8;
 
 export function ActivityHeatmap() {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const locale = useLocale();
+  const t = useTranslations("charts");
+  const tHeatmap = useTranslations("metrics.heatmap");
+  const dayLabels = t.raw("heatmapDayRowLabels") as string[];
 
   const { data, isLoading } = useQuery<HeatmapResponse>({
     queryKey: ["metrics-heatmap"],
@@ -146,16 +149,17 @@ export function ActivityHeatmap() {
     return (
       <div className={mx.heatmapSection}>
         <div style={{ color: "#475569", fontSize: 12, fontFamily: "var(--font-dm-mono, monospace)" }}>
-          cargando...
+          {t("heatmapLoading")}
         </div>
       </div>
     );
   }
 
-  const { weeks, monthLabels } = buildGrid(data.days);
+  const { weeks, monthLabels } = buildGrid(data.days, locale);
 
   return (
     <div className={mx.heatmapSection}>
+      <div className={chartC.kickerAlt}>{tHeatmap("kicker")}</div>
 
       {/* Custom tooltip */}
       {tooltip && (
@@ -164,7 +168,7 @@ export function ActivityHeatmap() {
           style={{ left: tooltip.x + OFFSET_X, top: tooltip.y + OFFSET_Y }}
         >
           <div className={mx.heatmapTooltipDate}>
-            {formatTooltipDate(tooltip.cell.date)}
+            {formatTooltipDate(tooltip.cell.date, locale)}
           </div>
           {tooltip.cell.km > 0 ? (
             <>
@@ -173,13 +177,13 @@ export function ActivityHeatmap() {
               </div>
               <div className={mx.heatmapTooltipMeta}>
                 {tooltip.cell.count === 1
-                  ? "1 salida"
-                  : `${tooltip.cell.count} salidas`}
+                  ? t("heatmapRunsOne")
+                  : t("heatmapRunsMany", { count: tooltip.cell.count })}
                 {tooltip.cell.tss > 0 && ` · TSS ${tooltip.cell.tss}`}
               </div>
             </>
           ) : (
-            <div className={mx.heatmapTooltipEmpty}>Sin actividad</div>
+            <div className={mx.heatmapTooltipEmpty}>{t("heatmapNoActivity")}</div>
           )}
         </div>
       )}
@@ -198,7 +202,7 @@ export function ActivityHeatmap() {
       {/* Grid */}
       <div className={mx.heatmapWrap}>
         <div className={mx.heatmapDayLabels}>
-          {DAY_LABELS.map((label, i) => (
+          {dayLabels.map((label, i) => (
             <div key={i} style={{ height: 12, lineHeight: "12px" }}>{label}</div>
           ))}
         </div>
@@ -249,11 +253,11 @@ export function ActivityHeatmap() {
 
       {/* Legend */}
       <div className={mx.heatmapLegend}>
-        <span>Menos</span>
+        <span>{t("heatmapLess")}</span>
         {LEGEND_COLORS.map((color) => (
           <div key={color} className={mx.heatmapLegendCell} style={{ background: color }} />
         ))}
-        <span>Más</span>
+        <span>{t("heatmapMore")}</span>
       </div>
     </div>
   );

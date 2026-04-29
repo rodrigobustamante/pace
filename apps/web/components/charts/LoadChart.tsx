@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   BarChart,
   Bar,
@@ -18,11 +19,14 @@ interface WeeklyData {
 }
 
 export function LoadChart({ data }: { data: WeeklyData[] }) {
+  const t = useTranslations("charts");
+
   return (
     <div className={c.root}>
-      <div className={c.kickerAlt}>Carga de entrenamiento</div>
+      <div className={c.kickerAlt}>{t("trainingLoad")}</div>
       <div className={c.titleLg}>
-        TSS <span className={c.accentOrange}>progresivo</span>
+        {t("tssStackTitle")}{" "}
+        <span className={c.accentOrange}>{t("tssProgressiveAccent")}</span>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data}>
@@ -44,7 +48,7 @@ export function LoadChart({ data }: { data: WeeklyData[] }) {
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="tss"
-            name="Carga"
+            name={t("seriesLoad")}
             fill="#f97316"
             fillOpacity={0.7}
             radius={[4, 4, 0, 0]}

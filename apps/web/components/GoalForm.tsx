@@ -2,29 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import * as s from "@/styles/planPage.css";
 
 type GoalType = "race_5k" | "race_10k" | "half_marathon" | "marathon" | "custom";
 
-const GOAL_OPTIONS: { type: GoalType; label: string; icon: string }[] = [
-  { type: "race_5k", label: "5K", icon: "🏃" },
-  { type: "race_10k", label: "10K", icon: "🏃" },
-  { type: "half_marathon", label: "Media Maratón", icon: "🛣️" },
-  { type: "marathon", label: "Maratón", icon: "🏆" },
-];
-
-const DEFAULT_TITLES: Record<GoalType, string> = {
-  race_5k: "Carrera 5K",
-  race_10k: "Carrera 10K",
-  half_marathon: "Media Maratón",
-  marathon: "Maratón",
-  custom: "",
+const GOAL_ICONS: Record<GoalType, string> = {
+  race_5k: "🏃",
+  race_10k: "🏃",
+  half_marathon: "🛣️",
+  marathon: "🏆",
+  custom: "🎯",
 };
 
 export function GoalForm() {
   const router = useRouter();
+  const t = useTranslations("goalForm");
+  const tPlan = useTranslations("plan");
   const [goalType, setGoalType] = useState<GoalType>("race_10k");
-  const [title, setTitle] = useState(DEFAULT_TITLES["race_10k"]);
+  const [title, setTitle] = useState(tPlan("goalTypes.race_10k"));
   const [targetDate, setTargetDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +28,13 @@ export function GoalForm() {
 
   function handleGoalTypeChange(type: GoalType) {
     setGoalType(type);
-    setTitle(DEFAULT_TITLES[type]);
+    setTitle(tPlan(`goalTypes.${type}` as Parameters<typeof tPlan>[0]));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!targetDate) {
-      setError("Selecciona una fecha para tu objetivo");
+      setError(t("errorNoDate"));
       return;
     }
     setError(null);
@@ -53,18 +49,18 @@ export function GoalForm() {
           "Content-Type": "application/json",
           "X-User-Timezone": tz,
         },
-        body: JSON.stringify({ title: title || DEFAULT_TITLES[goalType], goalType, targetDate }),
+        body: JSON.stringify({ title: title || tPlan(`goalTypes.${goalType}` as Parameters<typeof tPlan>[0]), goalType, targetDate }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Error al crear el objetivo");
+        setError(data.error ?? t("errorCreate"));
         setGenerating(false);
         setLoading(false);
         return;
       }
       router.refresh();
     } catch {
-      setError("Error de conexión");
+      setError(t("errorConnection"));
       setGenerating(false);
       setLoading(false);
     }
@@ -74,11 +70,8 @@ export function GoalForm() {
     return (
       <div className={s.generatingBox}>
         <div className={s.generatingEmoji}>🤖</div>
-        <div className={s.generatingTitle}>Generando tu plan</div>
-        <div className={s.generatingText}>
-          El coach está analizando tu historial y creando un plan personalizado para tu objetivo.
-          Esto puede tomar unos segundos.
-        </div>
+        <div className={s.generatingTitle}>{t("generating.title")}</div>
+        <div className={s.generatingText}>{t("generating.body")}</div>
         <div className={s.spinLoader} />
       </div>
     );
@@ -91,41 +84,39 @@ export function GoalForm() {
 
   return (
     <div className={s.formCard}>
-      <div className={s.formTitle}>🎯 Nuevo objetivo</div>
-      <div className={s.formSub}>
-        Dime cuál es tu próxima carrera y el coach creará un plan de entrenamiento personalizado.
-      </div>
+      <div className={s.formTitle}>🎯 {t("title")}</div>
+      <div className={s.formSub}>{t("sub")}</div>
 
       <form onSubmit={handleSubmit}>
         <div className={s.formGroup}>
-          <label className={s.formLabel}>Tipo de carrera</label>
+          <label className={s.formLabel}>{t("raceTypeLabel")}</label>
           <div className={s.goalTypeGrid}>
-            {GOAL_OPTIONS.map((opt) => (
+            {(["race_5k", "race_10k", "half_marathon", "marathon"] as GoalType[]).map((type) => (
               <button
-                key={opt.type}
+                key={type}
                 type="button"
-                className={`${s.goalTypeBtn} ${goalType === opt.type ? s.goalTypeBtnActive : ""}`}
-                onClick={() => handleGoalTypeChange(opt.type)}
+                className={`${s.goalTypeBtn} ${goalType === type ? s.goalTypeBtnActive : ""}`}
+                onClick={() => handleGoalTypeChange(type)}
               >
-                {opt.icon} {opt.label}
+                {GOAL_ICONS[type]} {tPlan(`goalTypes.${type}` as Parameters<typeof tPlan>[0])}
               </button>
             ))}
           </div>
         </div>
 
         <div className={s.formGroup}>
-          <label className={s.formLabel}>Nombre del objetivo</label>
+          <label className={s.formLabel}>{t("goalNameLabel")}</label>
           <input
             className={s.formInput}
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej: 10K Valencia"
+            placeholder={t("goalNamePlaceholder")}
           />
         </div>
 
         <div className={s.formGroup}>
-          <label className={s.formLabel}>Fecha de la carrera</label>
+          <label className={s.formLabel}>{t("raceDateLabel")}</label>
           <input
             className={s.formInput}
             type="date"
@@ -139,7 +130,7 @@ export function GoalForm() {
         {error && <div className={s.formError}>{error}</div>}
 
         <button type="submit" className={s.submitBtn} disabled={loading}>
-          {loading ? "Generando plan..." : "Crear plan de entrenamiento"}
+          {loading ? t("submitLoading") : t("submitIdle")}
         </button>
       </form>
     </div>

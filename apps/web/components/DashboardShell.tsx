@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { PaceLogo } from "@/components/PaceLogo";
 import * as grid from "@/styles/dashboardGrid.css";
 import * as shell from "@/styles/shell.css";
@@ -11,16 +12,17 @@ interface Props {
   children: React.ReactNode;
 }
 
-const tabs = [
-  { id: "overview", label: "Overview", href: "/dashboard" },
-  { id: "activities", label: "Actividades", href: "/dashboard/activities" },
-  { id: "metrics", label: "Métricas", href: "/dashboard/metrics" },
-  { id: "coach", label: "Coach IA", href: "/dashboard/coach" },
-  { id: "plan", label: "Plan", href: "/dashboard/plan" },
-];
-
 export function DashboardShell({ user, children }: Props) {
   const pathname = usePathname();
+  const t = useTranslations("shell");
+
+  const tabs = [
+    { id: "overview", label: t("tabs.overview"), href: "/dashboard" },
+    { id: "activities", label: t("tabs.activities"), href: "/dashboard/activities" },
+    { id: "metrics", label: t("tabs.metrics"), href: "/dashboard/metrics" },
+    { id: "coach", label: t("tabs.coach"), href: "/dashboard/coach" },
+    { id: "plan", label: t("tabs.plan"), href: "/dashboard/plan" },
+  ];
 
   const activeTab =
     pathname === "/dashboard"
@@ -43,13 +45,13 @@ export function DashboardShell({ user, children }: Props) {
         </div>
 
         <nav className={grid.headerNav}>
-          {tabs.map((t) => (
+          {tabs.map((tab) => (
             <Link
-              key={t.id}
-              href={t.href}
-              className={`${shell.tabBtn} ${activeTab === t.id ? shell.tabBtnActive : ""}`}
+              key={tab.id}
+              href={tab.href}
+              className={`${shell.tabBtn} ${activeTab === tab.id ? shell.tabBtnActive : ""}`}
             >
-              {t.label}
+              {tab.label}
             </Link>
           ))}
         </nav>
@@ -57,7 +59,7 @@ export function DashboardShell({ user, children }: Props) {
         <div className={shell.headerRight}>
           <div className={`${shell.syncRow} ${grid.headerSync}`}>
             <div className={shell.syncDot} />
-            <span className={shell.syncLabel}>Sincronizado</span>
+            <span className={shell.syncLabel}>{t("synced")}</span>
           </div>
           <Link
             href="/dashboard/settings"
@@ -66,7 +68,7 @@ export function DashboardShell({ user, children }: Props) {
                 ? shell.settingsLinkActive
                 : shell.settingsLinkInactive
             }`}
-            title="Perfil"
+            title={t("profileTitle")}
           >
             ⚙
           </Link>
@@ -86,7 +88,7 @@ export function DashboardShell({ user, children }: Props) {
           </div>
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className={shell.logoutBtn}>
-              Salir
+              {t("logout")}
             </button>
           </form>
         </div>
@@ -95,7 +97,7 @@ export function DashboardShell({ user, children }: Props) {
       <div className={grid.contentWrap}>{children}</div>
 
       <nav className={`${grid.bottomNav} ${shell.bottomNavBar}`}>
-        {tabs.map((t) => {
+        {tabs.map((tab) => {
           const icons: Record<string, string> = {
             overview: "🏠",
             activities: "📋",
@@ -103,16 +105,16 @@ export function DashboardShell({ user, children }: Props) {
             coach: "🤖",
             plan: "🎯",
           };
-          const isActive = activeTab === t.id;
+          const isActive = activeTab === tab.id;
           return (
             <Link
-              key={t.id}
-              href={t.href}
+              key={tab.id}
+              href={tab.href}
               className={shell.bottomNavLink}
               data-active={isActive ? "true" : "false"}
             >
-              <span className={shell.bottomNavIcon}>{icons[t.id]}</span>
-              <span className={shell.bottomNavLabel}>{t.label}</span>
+              <span className={shell.bottomNavIcon}>{icons[tab.id]}</span>
+              <span className={shell.bottomNavLabel}>{tab.label}</span>
             </Link>
           );
         })}

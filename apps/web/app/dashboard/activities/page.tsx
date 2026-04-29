@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ActivityRow } from "@/components/ActivityRow";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import * as s from "@/styles/pagesShared.css";
@@ -34,6 +35,7 @@ interface ActivitiesResponse {
 
 export default function ActivitiesPage() {
   const [page, setPage] = useState(1);
+  const t = useTranslations("activities");
   const limit = 20;
 
   const { data, isLoading } = useQuery<ActivitiesResponse>({
@@ -47,11 +49,11 @@ export default function ActivitiesPage() {
   return (
     <div>
       <div className={s.pageHeaderBlock}>
-        <div className={s.pageTitle}>Actividades recientes</div>
+        <div className={s.pageTitle}>{t("title")}</div>
         <div className={s.pageSubtitle}>
           {data?.pagination.total
-            ? `${data.pagination.total} sesiones sincronizadas desde Strava`
-            : "Cargando actividades..."}
+            ? t("subtitleLoaded", { total: data.pagination.total })
+            : t("subtitleLoading")}
         </div>
       </div>
 
@@ -64,10 +66,8 @@ export default function ActivitiesPage() {
       ) : data?.activities.length === 0 ? (
         <div className={s.emptyState}>
           <div className={s.emptyStateEmoji}>🏃</div>
-          <div className={s.emptyStateTitle}>Sin actividades todavía</div>
-          <div className={s.emptyStateBody}>
-            La sincronización desde Strava puede tardar unos minutos.
-          </div>
+          <div className={s.emptyStateTitle}>{t("empty.title")}</div>
+          <div className={s.emptyStateBody}>{t("empty.body")}</div>
         </div>
       ) : (
         <>
@@ -85,7 +85,7 @@ export default function ActivitiesPage() {
                 disabled={page === 1}
                 className={`${s.paginationBtn} ${page === 1 ? s.paginationBtnDisabled : s.paginationBtnActive}`}
               >
-                ← Anterior
+                {t("prev")}
               </button>
               <span className={s.paginationPage}>
                 {page} / {data.pagination.totalPages}
@@ -98,7 +98,7 @@ export default function ActivitiesPage() {
                 disabled={page === data.pagination.totalPages}
                 className={`${s.paginationBtn} ${page === data.pagination.totalPages ? s.paginationBtnDisabled : s.paginationBtnActive}`}
               >
-                Siguiente →
+                {t("next")}
               </button>
             </div>
           )}

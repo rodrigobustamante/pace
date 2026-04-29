@@ -430,3 +430,43 @@ export const authErrorRetry = style({
   fontSize: 14,
   fontWeight: 600,
 });
+
+export const langSwitchRow = style({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+});
+
+export const langBtn = style({
+  background: "transparent",
+  border: "none",
+  borderRadius: 6,
+  padding: "4px 10px",
+  fontSize: 13,
+  fontWeight: 600,
+  fontFamily: vars.font.dmSans,
+  cursor: "pointer",
+  letterSpacing: "0.06em",
+});
+
+export const langBtnActive = style({
+  color: vars.color.orange,
+  background: "rgba(249,115,22,0.12)",
+  cursor: "default",
+});
+
+export const langBtnInactive = style({
+  color: vars.color.muted,
+  selectors: {
+    "&:hover": {
+      color: vars.color.foreground,
+      background: vars.color.overlayLight,
+    },
+  },
+});
+
+export const langDivider = style({
+  color: vars.color.border,
+  fontSize: 13,
+  userSelect: "none",
+});
