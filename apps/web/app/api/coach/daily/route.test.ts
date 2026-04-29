@@ -16,6 +16,13 @@ vi.mock("@/lib/auth", () => ({
   getUserFromRequest,
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: () => ({
+    get: (name: string) =>
+      name === "NEXT_LOCALE" ? { value: "es" } : undefined,
+  }),
+}));
+
 vi.mock("@/services/coach/context", () => ({
   buildDailyContext,
   formatGoalForPrompt,
@@ -121,7 +128,7 @@ describe("GET /api/coach/daily", () => {
     expect(redisDel).toHaveBeenCalledTimes(1);
     expect(buildDailyContext).toHaveBeenCalledWith("u1", "Europe/Madrid");
     expect(redisSetex).toHaveBeenCalledWith(
-      "coach:daily:u1:2026-04-25",
+      "coach:daily:u1:2026-04-25:es",
       3600,
       expect.any(String),
     );

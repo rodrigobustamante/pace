@@ -13,6 +13,13 @@ vi.mock("@/lib/auth", () => ({
   getUserFromRequest,
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: () => ({
+    get: (name: string) =>
+      name === "NEXT_LOCALE" ? { value: "es" } : undefined,
+  }),
+}));
+
 vi.mock("@/services/coach/context", () => ({
   buildWeeklyContext,
   formatGoalForPrompt,
@@ -226,7 +233,9 @@ describe("POST /api/coach/chat", () => {
     const modelConfig = getGenerativeModel.mock.calls[0]?.[0] as {
       systemInstruction: string;
     };
-    expect(modelConfig.systemInstruction).toContain("Señales de sobreentrenamiento (warning)");
+    expect(modelConfig.systemInstruction).toContain(
+      "Overtraining signals (warning)",
+    );
   });
 
   it("streams error marker when provider throws", async () => {
