@@ -90,6 +90,12 @@ export async function POST(
           "No hay confirmaciones de entrenos en la app para días pasados; usa el historial de Strava y el estado actual del atleta.",
         ];
 
+  const otherGoals = await prisma.goal.findMany({
+    where: { userId: user.id, isActive: true, id: { not: goal.id } },
+    orderBy: { targetDate: "asc" },
+    select: { title: true, targetDate: true, location: true, priority: true },
+  });
+
   try {
     const plan = await generateAndPersistTrainingPlan({
       prisma,
@@ -97,6 +103,14 @@ export async function POST(
       goalId: goal.id,
       goalTitle: goal.title,
       goalTargetDate: goal.targetDate,
+      goalLocation: goal.location ?? undefined,
+      goalPriority: goal.priority,
+      otherMilestones: otherGoals.map((g) => ({
+        title: g.title,
+        targetDate: g.targetDate.toISOString().split("T")[0]!,
+        location: g.location ?? undefined,
+        priority: g.priority,
+      })),
       replaceExisting: true,
       coachNotes,
       timezone: tz,

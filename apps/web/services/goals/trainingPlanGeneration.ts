@@ -18,12 +18,23 @@ function isValidRunType(v: unknown): v is RunType {
   return typeof v === "string" && VALID_WORKOUT_TYPES.has(v as RunType);
 }
 
+export interface MilestoneInfo {
+  title: string;
+  targetDate: string; // YYYY-MM-DD
+  location?: string;
+  priority: string; // "A" | "B" | "C"
+}
+
 export interface GenerateTrainingPlanParams {
   prisma: PrismaClient;
   userId: string;
   goalId: string;
   goalTitle: string;
   goalTargetDate: Date;
+  goalLocation?: string;
+  goalPriority?: string;
+  /** All other upcoming milestones (excluding the one being planned) */
+  otherMilestones?: MilestoneInfo[];
   /** Borra el plan actual del objetivo antes de crear uno nuevo */
   replaceExisting?: boolean;
   /** Líneas extra para el coach (cumplimiento, notas) */
@@ -41,6 +52,9 @@ export async function generateAndPersistTrainingPlan(
     goalId,
     goalTitle,
     goalTargetDate,
+    goalLocation,
+    goalPriority = "A",
+    otherMilestones = [],
     replaceExisting,
     coachNotes,
     timezone = "UTC",
@@ -63,12 +77,33 @@ export async function generateAndPersistTrainingPlan(
       ? `\nContexto adicional del atleta:\n${coachNotes.map((n) => `- ${n}`).join("\n")}\n`
       : "";
 
+  const priorityLabel =
+    goalPriority === "A" ? "carrera principal (A-race)"
+    : goalPriority === "B" ? "carrera secundaria (B-race)"
+    : "carrera de entrenamiento (C-race)";
+
+  const locationStr = goalLocation ? ` en ${goalLocation}` : "";
+
+  const milestonesBlock =
+    otherMilestones.length > 0
+      ? `\nOtros hitos en el calendario del atleta (considera estos al distribuir la carga):\n${otherMilestones
+          .map((m) => {
+            const loc = m.location ? ` en ${m.location}` : "";
+            const tag =
+              m.priority === "A" ? "[A-race]"
+              : m.priority === "B" ? "[B-race]"
+              : "[C-race]";
+            return `- ${m.targetDate}: ${m.title}${loc} ${tag}`;
+          })
+          .join("\n")}\n`
+      : "";
+
   const prompt = `Eres un coach de running profesional. Genera un plan de entrenamiento estructurado en JSON.
 
 Atleta: ${ctx.userName}
-Objetivo: ${goalTitle} el ${raceDate}
+Objetivo: ${goalTitle}${locationStr} el ${raceDate} [${priorityLabel}]
 Hoy: ${today}
-Días hasta la carrera: ${daysUntilRace}
+Días hasta la carrera: ${daysUntilRace}${milestonesBlock}
 Fitness actual: CTL ${ctx.ctl}, ATL ${ctx.atl}, TSB ${ctx.tsb} (${ctx.tsbTrend})
 Volumen semanal reciente: ~${ctx.weeklyKm.toFixed(1)} km/semana
 Ritmo medio reciente: ${ctx.avgPaceFormatted} min/km
@@ -106,6 +141,7 @@ Reglas:
 - Para sesiones easy/long en Z2, propone ritmos normalmente cercanos al ritmo aeróbico actual del atleta (aprox +20 a +80 seg/km respecto a su ritmo medio reciente, ajustando por fatiga/objetivo)
 - Si hay conflicto entre ritmo y zona en ejecución real, la prioridad es cumplir la zona objetivo; ajusta el ritmo para mantenerse en la zona prescrita
 - Si el contexto indica sesiones saltadas o fatiga, reduce carga de forma prudente en los próximos días
+- Si hay otros hitos [B-race] o [C-race] antes de la carrera objetivo, incluye un mini-taper de 3-4 días antes de cada uno y retoma carga progresiva después; no sacrifiques la preparación del [A-race]
 - Todas las descripciones en español
 - NO incluyas texto fuera del JSON`;
 

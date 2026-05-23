@@ -66,24 +66,40 @@ export interface PlannedWorkout {
   description: string;
 }
 
+export interface MilestoneSummary {
+  id: string;
+  title: string;
+  goalType: string;
+  targetDate: string;
+  daysUntilRace: number;
+  location: string | null;
+  priority: string;
+}
+
 export type GoalContext = {
   hasGoal: false;
 } | {
   hasGoal: true;
+  // Active milestone (nearest upcoming with a training plan)
+  goalId: string;
   goalTitle: string;
   goalType: string;
   targetDate: string;
   daysUntilRace: number;
-  todayWorkout: PlannedWorkout | null;      // what the plan says for today
-  nextWorkout: PlannedWorkout | null;       // next non-rest day after today
-  upcomingWeek: PlannedWorkout[];           // next 7 days (incl today)
+  location: string | null;
+  priority: string;
+  todayWorkout: PlannedWorkout | null;
+  nextWorkout: PlannedWorkout | null;
+  upcomingWeek: PlannedWorkout[];
   planProgress: {
     totalDays: number;
-    confirmedDays: number;   // willTrain === true
-    skippedDays: number;     // willTrain === false
-    pendingDays: number;     // willTrain === null (future)
+    confirmedDays: number;
+    skippedDays: number;
+    pendingDays: number;
   };
-  raceProjection: RaceProjection | null;   // projected CTL/ATL/TSB on race day
+  raceProjection: RaceProjection | null;
+  // All upcoming milestones on the athlete's timeline (including the active one)
+  allMilestones: MilestoneSummary[];
 }
 
 export interface LongRunRecovery {
@@ -105,28 +121,52 @@ export { type OverttrainingRisk, type RaceProjection };
 export function formatGoalForPrompt(goal: GoalContext): string {
   if (!goal.hasGoal) return "Sin objetivo activo.";
 
+  const locationStr = goal.location ? ` en ${goal.location}` : "";
+  const priorityLabel =
+    goal.priority === "A" ? "Carrera principal (A)"
+    : goal.priority === "B" ? "Carrera secundaria (B)"
+    : "Carrera de entrenamiento (C)";
+
   const lines: string[] = [
-    `Objetivo: ${goal.goalTitle} (${goal.targetDate}) — ${goal.daysUntilRace} días restantes`,
+    `Hito activo: ${goal.goalTitle}${locationStr} — ${goal.targetDate} (${goal.daysUntilRace} días) [${priorityLabel}]`,
     `Progreso del plan: ${goal.planProgress.confirmedDays} confirmados, ${goal.planProgress.skippedDays} saltados, ${goal.planProgress.pendingDays} pendientes de ${goal.planProgress.totalDays} total`,
   ];
 
   if (goal.todayWorkout) {
     const tw = goal.todayWorkout;
-    const label = tw.workoutType === "unknown" ? "Descanso" : `${tw.title} (${tw.durationMin} min, ${tw.workoutType})`;
+    const label =
+      tw.workoutType === "unknown"
+        ? "Descanso"
+        : `${tw.title} (${tw.durationMin} min, ${tw.workoutType})`;
     lines.push(`Entrenamiento planificado para HOY: ${label}`);
     if (tw.workoutType !== "unknown") lines.push(`  → ${tw.description}`);
   }
 
   if (goal.nextWorkout) {
     const nw = goal.nextWorkout;
-    lines.push(`Próximo entrenamiento: ${nw.date} — ${nw.title} (${nw.durationMin} min, ${nw.workoutType})`);
+    lines.push(
+      `Próximo entrenamiento: ${nw.date} — ${nw.title} (${nw.durationMin} min, ${nw.workoutType})`,
+    );
   }
 
   if (goal.upcomingWeek.length > 0) {
     lines.push("Próximos 7 días del plan:");
     for (const d of goal.upcomingWeek) {
-      const label = d.workoutType === "unknown" ? "Descanso" : `${d.title} (${d.durationMin} min)`;
+      const label =
+        d.workoutType === "unknown"
+          ? "Descanso"
+          : `${d.title} (${d.durationMin} min)`;
       lines.push(`  ${d.date}: ${label}`);
+    }
+  }
+
+  // Full milestone timeline (so AI knows races ahead)
+  if (goal.allMilestones.length > 1) {
+    lines.push("Timeline completo de hitos:");
+    for (const m of goal.allMilestones) {
+      const loc = m.location ? ` — ${m.location}` : "";
+      const tag = m.priority === "A" ? " [A]" : m.priority === "B" ? " [B]" : " [C]";
+      lines.push(`  ${m.targetDate}: ${m.title}${loc}${tag} (${m.daysUntilRace} días)`);
     }
   }
 
@@ -139,9 +179,12 @@ export async function buildGoalContext(
   currentAtl = 0,
   tz = "UTC",
 ): Promise<GoalContext> {
-  const goal = await prisma.goal.findFirst({
+  const todayStr = localDateStr(tz);
+
+  // Fetch all active milestones sorted by race date
+  const allGoals = await prisma.goal.findMany({
     where: { userId, isActive: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { targetDate: "asc" },
     include: {
       trainingPlan: {
         include: { days: { orderBy: { date: "asc" } } },
@@ -149,20 +192,67 @@ export async function buildGoalContext(
     },
   });
 
-  if (!goal?.trainingPlan) return { hasGoal: false };
+  // Only consider future milestones (race date >= today)
+  const futureGoals = allGoals.filter(
+    (g) => g.targetDate.toISOString().split("T")[0]! >= todayStr,
+  );
 
-  const todayStr = localDateStr(tz);
-  const targetDateStr = goal.targetDate.toISOString().split("T")[0]!;
+  if (futureGoals.length === 0) return { hasGoal: false };
+
+  // Active = nearest upcoming milestone that has a training plan
+  // Fall back to nearest without a plan if none have one
+  const active =
+    futureGoals.find((g) => g.trainingPlan != null) ?? futureGoals[0]!;
+
+  if (!active.trainingPlan) {
+    // Has milestones but no plan yet — return minimal context
+    const targetDateStr = active.targetDate.toISOString().split("T")[0]!;
+    const daysUntilRace = Math.ceil(
+      (new Date(targetDateStr).getTime() - new Date(todayStr).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    return {
+      hasGoal: true,
+      goalId: active.id,
+      goalTitle: active.title,
+      goalType: active.goalType,
+      targetDate: targetDateStr,
+      daysUntilRace,
+      location: active.location ?? null,
+      priority: active.priority,
+      todayWorkout: null,
+      nextWorkout: null,
+      upcomingWeek: [],
+      planProgress: { totalDays: 0, confirmedDays: 0, skippedDays: 0, pendingDays: 0 },
+      raceProjection: null,
+      allMilestones: futureGoals.map((g) => {
+        const ds = g.targetDate.toISOString().split("T")[0]!;
+        return {
+          id: g.id,
+          title: g.title,
+          goalType: g.goalType,
+          targetDate: ds,
+          daysUntilRace: Math.ceil(
+            (new Date(ds).getTime() - new Date(todayStr).getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+          location: g.location ?? null,
+          priority: g.priority,
+        };
+      }),
+    };
+  }
+
+  const targetDateStr = active.targetDate.toISOString().split("T")[0]!;
   const daysUntilRace = Math.ceil(
     (new Date(targetDateStr).getTime() - new Date(todayStr).getTime()) /
       (1000 * 60 * 60 * 24),
   );
 
-  const days = goal.trainingPlan.days;
-  const futureDays = days.filter((d) => {
-    const ds = d.date.toISOString().split("T")[0]!;
-    return ds >= todayStr;
-  });
+  const days = active.trainingPlan.days;
+  const futureDays = days.filter(
+    (d) => d.date.toISOString().split("T")[0]! >= todayStr,
+  );
 
   const todayDay = futureDays.find(
     (d) => d.date.toISOString().split("T")[0] === todayStr,
@@ -177,6 +267,7 @@ export async function buildGoalContext(
   const sevenDaysLaterStr = new Date(Date.UTC(ty!, tm! - 1, td! + 7))
     .toISOString()
     .split("T")[0]!;
+
   const upcomingWeek = futureDays
     .filter((d) => d.date.toISOString().split("T")[0]! <= sevenDaysLaterStr)
     .map((d) => ({
@@ -203,7 +294,6 @@ export async function buildGoalContext(
   const skippedDays = days.filter((d) => d.willTrain === false).length;
   const pendingDays = days.filter((d) => d.willTrain === null).length;
 
-  // Race day projection — simulate CTL/ATL/TSB if the plan is followed
   let raceProjection: RaceProjection | null = null;
   if (daysUntilRace > 0 && currentCtl > 0) {
     const planWorkouts = days.map((d) => ({
@@ -220,17 +310,38 @@ export async function buildGoalContext(
     );
   }
 
+  // Build summary for all future milestones
+  const allMilestones: MilestoneSummary[] = futureGoals.map((g) => {
+    const ds = g.targetDate.toISOString().split("T")[0]!;
+    return {
+      id: g.id,
+      title: g.title,
+      goalType: g.goalType,
+      targetDate: ds,
+      daysUntilRace: Math.ceil(
+        (new Date(ds).getTime() - new Date(todayStr).getTime()) /
+          (1000 * 60 * 60 * 24),
+      ),
+      location: g.location ?? null,
+      priority: g.priority,
+    };
+  });
+
   return {
     hasGoal: true,
-    goalTitle: goal.title,
-    goalType: goal.goalType,
+    goalId: active.id,
+    goalTitle: active.title,
+    goalType: active.goalType,
     targetDate: targetDateStr,
     daysUntilRace,
+    location: active.location ?? null,
+    priority: active.priority,
     todayWorkout: toPlanned(todayDay),
     nextWorkout: toPlanned(nextWorkoutDay),
     upcomingWeek,
     planProgress: { totalDays, confirmedDays, skippedDays, pendingDays },
     raceProjection,
+    allMilestones,
   };
 }
 
