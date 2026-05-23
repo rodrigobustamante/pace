@@ -1,6 +1,6 @@
 // Shared TypeScript types for the PACE monorepo
 
-export type RunType = "easy" | "tempo" | "long" | "workout" | "race" | "unknown";
+export type RunType = "easy" | "tempo" | "long" | "workout" | "race" | "strength" | "unknown";
 
 export interface Activity {
   id: string;

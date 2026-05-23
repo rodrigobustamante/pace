@@ -80,6 +80,7 @@ enum RunType {
   long
   workout
   race
+  strength
   unknown
 }
 
