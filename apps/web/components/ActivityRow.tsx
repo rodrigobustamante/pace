@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { secToPace, secToDuration, mToKm } from "@pace/utils";
+import { secToPace, secToDuration, mToKm, feelLabel, feelColor } from "@pace/utils";
 import * as styles from "@/styles/activityRow.css";
 import * as grid from "@/styles/dashboardGrid.css";
 
@@ -89,7 +89,7 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
             </div>
           ))}
           {act.feel != null && (
-            <div style={{ minWidth: 50 }}>
+            <div style={{ minWidth: 56 }}>
               <div className={styles.feelDots}>
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div
@@ -98,13 +98,18 @@ export function ActivityRow({ activity: act }: ActivityRowProps) {
                     style={{
                       background:
                         s <= (act.feel ?? 0)
-                          ? "#fb923c"
+                          ? feelColor(act.feel as 1 | 2 | 3 | 4 | 5)
                           : "rgba(255,255,255,0.1)",
                     }}
                   />
                 ))}
               </div>
-              <div className={styles.feelLabel}>{t("stats.feel")}</div>
+              <div
+                className={styles.feelLabel}
+                style={{ color: feelColor(act.feel as 1 | 2 | 3 | 4 | 5) }}
+              >
+                {feelLabel(act.feel as 1 | 2 | 3 | 4 | 5)}
+              </div>
             </div>
           )}
         </div>
