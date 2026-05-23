@@ -1,19 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getUserFromRequest } from "@/lib/auth";
 import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
-import { cookies } from "next/headers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-function buildWeeklySystemPrompt(lang: string) {
-  const langInstruction = lang === "en" ? "Always respond in English." : "Always respond in Spanish.";
-  return `You are an expert, personalized running coach in the style of Runna.
+const COACH_SYSTEM_PROMPT = `You are an expert, personalized running coach in the style of Runna.
 You analyze real athlete data and give concrete, personalized, actionable advice.
 Avoid generalities. Be direct and specific.
 The athlete is a serious recreational runner who trains with data and wants to improve consistently.
-${langInstruction}
+Always respond in Spanish.
 Respond ONLY in valid JSON with this exact structure, no extra text:
 {
   "summary": "string — 2-3 sentences on current status",
@@ -32,10 +29,8 @@ Rules:
 - Specify the best day to do it relative to runs (e.g. "el miércoles, al menos 6h después del rodaje" or "el día de descanso")
 - Focus on unilateral exercises (single-leg) to correct asymmetries common in runners
 - Keep the body field concise: list the exercises directly, one per line or separated by "·"`;
-}
 
-/** Extracts the first valid JSON object from a Gemini response.
- *  Handles thinking tokens, markdown fences, and extra prose. */
+/** Extracts the first valid JSON object from a Gemini response. */
 function extractJSON(raw: string): Record<string, unknown> {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
@@ -45,22 +40,43 @@ function extractJSON(raw: string): Record<string, unknown> {
   return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
 }
 
-/** Cache key = Monday of the user's current local week (resets on their Monday) */
+/** Cache key = Monday of the user's current local week */
 function getWeekKey(tz: string): string {
-  const todayStr = localDateStr(tz);           // "2026-04-25"
+  const todayStr = localDateStr(tz);
   const [y, m, d] = todayStr.split("-").map(Number);
-  const jsDay = new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay(); // 0=Sun..6=Sat
-  const offset = jsDay === 0 ? -6 : 1 - jsDay; // days back to Monday
+  const jsDay = new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay();
+  const offset = jsDay === 0 ? -6 : 1 - jsDay;
   return new Date(Date.UTC(y!, m! - 1, d! + offset)).toISOString().split("T")[0]!;
+}
+
+const SSE_HEADERS = {
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache",
+  "Connection": "keep-alive",
+  "X-Content-Type-Options": "nosniff",
+} as const;
+
+/** Encode a single SSE event as a UTF-8 string (safe as Response body). */
+function sseText(payload: Record<string, unknown>): string {
+  return `data: ${JSON.stringify(payload)}\n\n`;
+}
+
+/** Encode a single SSE event as bytes for use inside a ReadableStream controller. */
+function encode(payload: Record<string, unknown>): Uint8Array {
+  return new TextEncoder().encode(sseText(payload));
 }
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
-  const cacheKey = `coach:weekly:${user.id}:${getWeekKey(tz)}:${locale}`;
+  const cacheKey = `coach:weekly:${user.id}:${getWeekKey(tz)}`;
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
@@ -68,48 +84,56 @@ export async function GET(req: NextRequest) {
   } else {
     const cached = await redis.get(cacheKey);
     if (cached) {
-      return NextResponse.json(JSON.parse(cached));
+      // Cache hit — single done event, no streaming needed
+      return new Response(
+        sseText({ type: "done", result: JSON.parse(cached) as Record<string, unknown> }),
+        { headers: SSE_HEADERS },
+      );
     }
   }
 
+  // Build context before opening the stream so errors return cleanly
+  let context: Awaited<ReturnType<typeof buildWeeklyContext>>;
   try {
-    const context = await buildWeeklyContext(user.id);
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: buildWeeklySystemPrompt(locale),
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-      },
+    context = await buildWeeklyContext(user.id, tz);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Weekly context error:", msg);
+    return new Response(sseText({ type: "error", message: "Coach no disponible. Intenta de nuevo." }), {
+      headers: SSE_HEADERS,
     });
+  }
 
-    const goalBlock = formatGoalForPrompt(context.goal);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: COACH_SYSTEM_PROMPT,
+    generationConfig: { temperature: 0.4 },
+  });
 
-    // Overtraining risk block
-    const riskBlock =
-      context.overttrainingRisk.level !== "ok"
-        ? `⚠️ Overtraining signals detected (${context.overttrainingRisk.level}): ${context.overttrainingRisk.signals.join(" · ")}`
-        : "No overtraining signals.";
+  const goalBlock = formatGoalForPrompt(context.goal);
 
-    // Long run recovery block
-    const recoveryBlock = context.longRunRecovery
-      ? (() => {
-          const lr = context.longRunRecovery;
-          const days =
-            lr.recoveryDays.length > 0
-              ? lr.recoveryDays
-                  .map(
-                    (d) =>
-                      `  Day+${d.daysAfter}: ${d.km}km @ ${d.pace}/km, HR ${d.avgHR ?? "—"}bpm, TSS ${d.tss ?? "—"}`,
-                  )
-                  .join("\n")
-              : "  No activities logged yet in recovery window";
-          return `Last long run: ${lr.longRunKm}km on ${lr.longRunDate} (${lr.daysSinceLongRun} days ago)\nRecovery activities (7-day window):\n${days}`;
-        })()
-      : "No long run in the last 30 days.";
+  const riskBlock =
+    context.overttrainingRisk.level !== "ok"
+      ? `⚠️ Overtraining signals detected (${context.overttrainingRisk.level}): ${context.overttrainingRisk.signals.join(" · ")}`
+      : "No overtraining signals.";
 
-    const prompt = `Athlete: ${context.userName}
+  const recoveryBlock = context.longRunRecovery
+    ? (() => {
+        const lr = context.longRunRecovery;
+        const days =
+          lr.recoveryDays.length > 0
+            ? lr.recoveryDays
+                .map(
+                  (d) =>
+                    `  Day+${d.daysAfter}: ${d.km}km @ ${d.pace}/km, HR ${d.avgHR ?? "—"}bpm, TSS ${d.tss ?? "—"}`,
+                )
+                .join("\n")
+            : "  No activities logged yet in recovery window";
+        return `Last long run: ${lr.longRunKm}km on ${lr.longRunDate} (${lr.daysSinceLongRun} days ago)\nRecovery activities (7-day window):\n${days}`;
+      })()
+    : "No long run in the last 30 days.";
+
+  const prompt = `Athlete: ${context.userName}
 Max HR: ${context.maxHR ?? "not set"} bpm | Threshold HR: ${context.thresholdHR} bpm
 
 HR Zones (5-zone model):
@@ -140,18 +164,32 @@ ${goalBlock}
 
 Generate the weekly analysis in JSON. If there is an active goal, the analysis must reference it explicitly — evaluate whether the week's training is aligned with the race preparation, comment on the upcoming plan, and adjust recommendations accordingly. If overtraining signals are detected, the warning card MUST address them directly.`;
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-    const parsed = extractJSON(raw);
+  const body = new ReadableStream({
+    async start(controller) {
+      let fullText = "";
+      try {
+        const result = await model.generateContentStream(prompt);
 
-    await redis.setex(cacheKey, 86400, JSON.stringify(parsed));
-    return NextResponse.json(parsed);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("Gemini weekly error:", msg);
-    return NextResponse.json(
-      { error: "Coach no disponible. Intenta de nuevo.", detail: msg },
-      { status: 500 },
-    );
-  }
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            fullText += text;
+            controller.enqueue(encode({ type: "chunk", text }));
+          }
+        }
+
+        const parsed = extractJSON(fullText);
+        await redis.setex(cacheKey, 86400, JSON.stringify(parsed));
+        controller.enqueue(encode({ type: "done", result: parsed }));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Gemini weekly stream error:", msg);
+        controller.enqueue(encode({ type: "error", message: "Coach no disponible. Intenta de nuevo." }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(body, { headers: SSE_HEADERS });
 }

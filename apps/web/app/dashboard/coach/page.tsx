@@ -13,13 +13,8 @@ import * as grid from "@/styles/dashboardGrid.css";
 import * as st from "@/styles/stagger.css";
 import * as shared from "@/styles/pagesShared.css";
 
-function TypewriterText({
-  text,
-  speed = 18,
-}: {
-  text: string;
-  speed?: number;
-}) {
+// TypewriterText is only used for cache-hit summaries (already-generated text)
+function TypewriterText({ text, speed = 18 }: { text: string; speed?: number }) {
   const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
@@ -39,31 +34,17 @@ function TypewriterText({
   return (
     <>
       {displayed}
-      <span
-        style={{
-          opacity: displayed.length < text.length ? 1 : 0,
-        }}
-      >
-        ▌
-      </span>
+      <span style={{ opacity: displayed.length < text.length ? 1 : 0 }}>▌</span>
     </>
   );
 }
 
-function StaggeredCard({
-  children,
-  index,
-}: {
-  children: React.ReactNode;
-  index: number;
-}) {
+function StaggeredCard({ children, index }: { children: React.ReactNode; index: number }) {
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), index * 120 + 200);
     return () => clearTimeout(t);
   }, [index]);
-
   return (
     <div className={st.reveal} data-visible={visible ? "true" : "false"}>
       {children}
@@ -77,7 +58,6 @@ function OverttrainingBanner() {
   const { risk, isLoading } = useCoachRisk();
   const t = useTranslations("coach");
   if (isLoading || !risk || risk.level === "ok") return null;
-
   const isDanger = risk.level === "danger";
   return (
     <div className={`${cp.riskBanner} ${isDanger ? cp.riskBannerDanger : cp.riskBannerWarning}`}>
@@ -124,19 +104,17 @@ function RaceProjectionCard() {
           <div className={cp.projectionLabel}>{t("projection.label")}</div>
           <div className={cp.projectionRace}>{goalTitle}</div>
         </div>
-        <div className={cp.projectionDays}>{targetDate} · {t("projection.daysUntil", { days: daysUntilRace })}</div>
+        <div className={cp.projectionDays}>
+          {targetDate} · {t("projection.daysUntil", { days: daysUntilRace })}
+        </div>
       </div>
       <div className={cp.projectionMetrics}>
         <div className={cp.projectionMetric}>
-          <span className={`${cp.projectionValue} ${cp.projectionValueNeutral}`}>
-            {projectedCTL}
-          </span>
+          <span className={`${cp.projectionValue} ${cp.projectionValueNeutral}`}>{projectedCTL}</span>
           <span className={cp.projectionMetricLabel}>CTL</span>
         </div>
         <div className={cp.projectionMetric}>
-          <span className={`${cp.projectionValue} ${cp.projectionValueNegative}`}>
-            {projectedATL}
-          </span>
+          <span className={`${cp.projectionValue} ${cp.projectionValueNegative}`}>{projectedATL}</span>
           <span className={cp.projectionMetricLabel}>ATL</span>
         </div>
         <div className={cp.projectionMetric}>
@@ -151,63 +129,42 @@ function RaceProjectionCard() {
   );
 }
 
+// ─── Daily advice card ────────────────────────────────────────────────────────
+
 function DailyAdviceCard() {
   const { advice, isLoading, error, refetch } = useDailyCoach();
   const t = useTranslations("coach");
-
   const isRest = advice?.recommendation === "rest";
   const accentColor = isRest ? "#60a5fa" : "#4ade80";
 
   return (
-    <div
-      className={`${cp.dailyCard} ${isRest ? cp.dailyCardRest : cp.dailyCardTrain}`}
-    >
-      <div
-        className={`${cp.dailyHeader} ${isLoading || error || !advice ? "" : cp.dailyHeaderMb}`}
-      >
+    <div className={`${cp.dailyCard} ${isRest ? cp.dailyCardRest : cp.dailyCardTrain}`}>
+      <div className={`${cp.dailyHeader} ${isLoading || error || !advice ? "" : cp.dailyHeaderMb}`}>
         <div>
-          <span
-            className={`${cp.dailyLabel} ${isRest ? cp.dailyLabelRest : cp.dailyLabelTrain}`}
-          >
+          <span className={`${cp.dailyLabel} ${isRest ? cp.dailyLabelRest : cp.dailyLabelTrain}`}>
             {t("daily.label")}
           </span>
         </div>
         {!isLoading ? (
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className={cp.iconBtn}
-          >
-            ↻
-          </button>
+          <button type="button" onClick={() => refetch()} className={cp.iconBtn}>↻</button>
         ) : null}
       </div>
 
       {isLoading ? (
         <div className={cp.loadRow}>
           <div className={cp.spinLoader} />
-          <span className={shared.mutedText13}>
-            {t("daily.analyzing")}
-          </span>
+          <span className={shared.mutedText13}>{t("daily.analyzing")}</span>
         </div>
       ) : null}
 
-      {error && !isLoading ? (
-        <div className={shared.errorText13}>{error}</div>
-      ) : null}
+      {error && !isLoading ? <div className={shared.errorText13}>{error}</div> : null}
 
       {advice && !isLoading ? (
         <div className={cp.dailyBodyRow}>
           <div className={cp.dailyIcon}>{isRest ? "😴" : "🏃"}</div>
           <div className={cp.dailyContent}>
             <div className={cp.dailyTitle}>{advice.title}</div>
-            <div
-              className={cp.dailyText}
-              style={{
-                marginBottom:
-                  advice.duration || advice.intensity ? 12 : 0,
-              }}
-            >
+            <div className={cp.dailyText} style={{ marginBottom: advice.duration || advice.intensity ? 12 : 0 }}>
               {advice.body}
             </div>
             {(advice.sessionType || advice.duration || advice.intensity) && (
@@ -215,21 +172,13 @@ function DailyAdviceCard() {
                 {advice.sessionType ? (
                   <span
                     className={cp.chipAccent}
-                    style={{
-                      color: accentColor,
-                      background: `${accentColor}18`,
-                      border: `1px solid ${accentColor}30`,
-                    }}
+                    style={{ color: accentColor, background: `${accentColor}18`, border: `1px solid ${accentColor}30` }}
                   >
                     {t(`daily.sessions.${advice.sessionType}` as Parameters<typeof t>[0]) ?? advice.sessionType}
                   </span>
                 ) : null}
-                {advice.duration ? (
-                  <span className={cp.chipMuted}>{advice.duration}</span>
-                ) : null}
-                {advice.intensity ? (
-                  <span className={cp.chipMuted}>{advice.intensity}</span>
-                ) : null}
+                {advice.duration ? <span className={cp.chipMuted}>{advice.duration}</span> : null}
+                {advice.intensity ? <span className={cp.chipMuted}>{advice.intensity}</span> : null}
               </div>
             )}
           </div>
@@ -239,8 +188,54 @@ function DailyAdviceCard() {
   );
 }
 
+// ─── Weekly summary box (handles both streaming and loaded states) ─────────────
+
+function WeeklySummaryBox({
+  summary,
+  isStreaming,
+  wasStreamed,
+}: {
+  summary: string;
+  isStreaming: boolean;
+  wasStreamed: boolean;
+}) {
+  return (
+    <div className={cp.weeklyBox}>
+      <div className={cp.weeklyRow}>
+        <div className={cp.weeklyEmoji}>📊</div>
+        <div>
+          <div className={cp.weeklyHeading}>
+            {isStreaming ? (
+              <span style={{ opacity: 0.6 }}>Analizando tu semana…</span>
+            ) : (
+              "Resumen semanal"
+            )}
+          </div>
+          <div className={cp.weeklyText}>
+            {isStreaming ? (
+              <>
+                {summary}
+                <span style={{ opacity: 0.7 }}>▌</span>
+              </>
+            ) : wasStreamed ? (
+              // Already appeared live — just render, no fake animation
+              summary
+            ) : (
+              // Cache hit — simulate the "typing" feel
+              <TypewriterText text={summary} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CoachPage() {
-  const { insights, isLoading, error, refetch } = useCoachStream();
+  const { insights, isLoading, isStreaming, streamSummary, wasStreamed, error, refetch } =
+    useCoachStream();
   const t = useTranslations("coach");
 
   const insightCards = insights
@@ -251,6 +246,10 @@ export default function CoachPage() {
         { type: "prediction" as const, ...insights.prediction },
       ]
     : [];
+
+  // Show the summary box while streaming (partial text) or once loaded
+  const showSummaryBox = isStreaming || !!insights;
+  const summaryText = isStreaming ? streamSummary : (insights?.summary ?? "");
 
   return (
     <div>
@@ -264,13 +263,13 @@ export default function CoachPage() {
         <button
           type="button"
           onClick={() => refetch()}
-          disabled={isLoading}
-          className={`${cp.regenBtn} ${isLoading ? cp.regenBtnLoading : cp.regenBtnReady}`}
+          disabled={isLoading || isStreaming}
+          className={`${cp.regenBtn} ${isLoading || isStreaming ? cp.regenBtnLoading : cp.regenBtnReady}`}
         >
-          {isLoading ? (
+          {isLoading || isStreaming ? (
             <span className={cp.regenRow}>
               <span className={cp.spinSm} />
-              {t("generating")}
+              {isStreaming ? t("generating") : t("generating")}
             </span>
           ) : (
             t("regenerate")
@@ -284,68 +283,31 @@ export default function CoachPage() {
 
       {error ? <div className={cp.errorBanner}>{error}</div> : null}
 
-      {isLoading ? (
-        <div className={shared.flexColGap16}>
-          <div className={cp.skeletonSummary}>
-            <div className={cp.weeklyRow}>
-              <div className={cp.skeletonEmoji}>📊</div>
-              <div className={cp.dailyContent}>
-                <div
-                  className={cp.skeletonLine}
-                  style={{
-                    height: 20,
-                    background: "rgba(255,255,255,0.06)",
-                    marginBottom: 10,
-                    width: "40%",
-                  }}
-                />
-                <div
-                  className={cp.skeletonLine}
-                  style={{
-                    height: 14,
-                    background: "rgba(255,255,255,0.04)",
-                    marginBottom: 6,
-                  }}
-                />
-                <div
-                  className={cp.skeletonLine}
-                  style={{
-                    height: 14,
-                    background: "rgba(255,255,255,0.04)",
-                    width: "70%",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-          <div className={grid.rg2Insight}>
-            {[...Array(4)].map((_, i) => (
-              <SkeletonCard key={i} height={120} />
-            ))}
-          </div>
-        </div>
-      ) : insights ? (
-        <>
-          <div className={cp.weeklyBox}>
-            <div className={cp.weeklyRow}>
-              <div className={cp.weeklyEmoji}>📊</div>
-              <div>
-                <div className={cp.weeklyHeading}>{t("weeklySummary")}</div>
-                <div className={cp.weeklyText}>
-                  <TypewriterText text={insights.summary} />
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Summary box: visible during streaming and after load */}
+      {showSummaryBox ? (
+        <WeeklySummaryBox
+          summary={summaryText}
+          isStreaming={isStreaming}
+          wasStreamed={wasStreamed}
+        />
+      ) : null}
 
+      {/* Skeleton cards shown while waiting for insights (streaming or initial load) */}
+      {(isLoading || isStreaming) && !insights ? (
+        <div className={grid.rg2Insight}>
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} height={120} />
+          ))}
+        </div>
+      ) : null}
+
+      {/* Full insight cards — appear with stagger once streaming finishes */}
+      {insights ? (
+        <>
           <div className={grid.rg2Insight}>
             {insightCards.map((card, i) => (
               <StaggeredCard key={card.type} index={i}>
-                <CoachInsightCard
-                  type={card.type}
-                  title={card.title}
-                  body={card.body}
-                />
+                <CoachInsightCard type={card.type} title={card.title} body={card.body} />
               </StaggeredCard>
             ))}
           </div>
@@ -353,9 +315,7 @@ export default function CoachPage() {
           {insights.complementary && (
             <StaggeredCard index={4}>
               <div className={cp.complementarySection}>
-                <div className={cp.complementarySectionLabel}>
-                  {t("strengthLabel")}
-                </div>
+                <div className={cp.complementarySectionLabel}>{t("strengthLabel")}</div>
                 <CoachInsightCard
                   type="complementary"
                   title={insights.complementary.title}
@@ -375,7 +335,7 @@ export default function CoachPage() {
             <CoachChat />
           </div>
         </>
-      ) : !error ? (
+      ) : !error && !isLoading && !isStreaming ? (
         <div className={cp.emptyCoach}>
           <div className={shared.emptyStateEmojiLg}>🤖</div>
           <div className={shared.emptyStateTitleLg}>{t("empty.title")}</div>

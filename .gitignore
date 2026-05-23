@@ -13,6 +13,7 @@ packages/db/.env
 .next/
 dist/
 out/
+coverage/
 
 # Turbo
 .turbo/
@@ -22,6 +23,12 @@ packages/db/node_modules/
 
 # OS
 .DS_Store
+
+# Claude Code
+.claude/
+
+# Expo
+.expo/
 
 # Logs
 *.log
