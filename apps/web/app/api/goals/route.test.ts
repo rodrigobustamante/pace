@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getUserFromRequest = vi.fn();
 const goalFindFirst = vi.fn();
-const goalUpdateMany = vi.fn();
+const goalFindMany = vi.fn();
 const goalCreate = vi.fn();
 const goalDelete = vi.fn();
 const generateAndPersistTrainingPlan = vi.fn();
@@ -16,7 +16,7 @@ vi.mock("@/lib/db", () => ({
   prisma: {
     goal: {
       findFirst: goalFindFirst,
-      updateMany: goalUpdateMany,
+      findMany: goalFindMany,
       create: goalCreate,
       delete: goalDelete,
     },
@@ -41,16 +41,28 @@ describe("/api/goals", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns active goal when present", async () => {
+    it("returns all active goals when present", async () => {
       getUserFromRequest.mockResolvedValue({ id: "u1" });
-      goalFindFirst.mockResolvedValue({ id: "g1", title: "10K" });
+      goalFindMany.mockResolvedValue([{ id: "g1", title: "10K" }]);
 
       const { GET } = await import("./route");
       const res = await GET(new NextRequest("http://localhost/api/goals"));
       const body = await res.json();
 
       expect(res.status).toBe(200);
-      expect(body).toEqual({ goal: { id: "g1", title: "10K" } });
+      expect(body).toEqual({ goals: [{ id: "g1", title: "10K" }] });
+    });
+
+    it("returns empty list when no active goals", async () => {
+      getUserFromRequest.mockResolvedValue({ id: "u1" });
+      goalFindMany.mockResolvedValue([]);
+
+      const { GET } = await import("./route");
+      const res = await GET(new NextRequest("http://localhost/api/goals"));
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body).toEqual({ goals: [] });
     });
   });
 
@@ -74,13 +86,14 @@ describe("/api/goals", () => {
       expect(res.status).toBe(401);
     });
 
-    it("returns 400 for invalid body", async () => {
+    it("returns 400 for missing goalType", async () => {
       getUserFromRequest.mockResolvedValue({ id: "u1" });
       const { POST } = await import("./route");
+      // goalType is missing → body.goalType is not a string → 400
       const res = await POST(
         new NextRequest("http://localhost/api/goals", {
           method: "POST",
-          body: JSON.stringify({ title: 1, goalType: "race_10k", targetDate: futureDate() }),
+          body: JSON.stringify({ title: "Objetivo", targetDate: futureDate() }),
           headers: { "Content-Type": "application/json" },
         }),
       );
@@ -125,13 +138,38 @@ describe("/api/goals", () => {
       expect(body.error).toContain("futuro");
     });
 
+    it("returns 409 when a milestone already exists on that date", async () => {
+      getUserFromRequest.mockResolvedValue({ id: "u1" });
+      goalFindFirst.mockResolvedValue({ id: "existing-goal" });
+
+      const { POST } = await import("./route");
+      const res = await POST(
+        new NextRequest("http://localhost/api/goals", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "Objetivo",
+            goalType: "race_10k",
+            targetDate: futureDate(),
+          }),
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+      const body = await res.json();
+      expect(res.status).toBe(409);
+      expect(body.error).toContain("hito registrado");
+    });
+
     it("returns 500 and deletes goal when plan generation fails", async () => {
       getUserFromRequest.mockResolvedValue({ id: "u1" });
+      // No duplicate on this date
+      goalFindFirst.mockResolvedValue(null);
       goalCreate.mockResolvedValue({
         id: "g-new",
         title: "Maratón",
         goalType: "marathon",
       });
+      // No other milestones
+      goalFindMany.mockResolvedValue([]);
       generateAndPersistTrainingPlan.mockRejectedValue(new Error("Gemini error"));
 
       const { POST } = await import("./route");
@@ -156,11 +194,15 @@ describe("/api/goals", () => {
     it("returns 200 with goal and plan on success", async () => {
       getUserFromRequest.mockResolvedValue({ id: "u1" });
       const target = futureDate();
+      // No duplicate
+      goalFindFirst.mockResolvedValue(null);
       goalCreate.mockResolvedValue({
         id: "g-new",
         title: "10K",
         goalType: "race_10k",
       });
+      // No other milestones
+      goalFindMany.mockResolvedValue([]);
       generateAndPersistTrainingPlan.mockResolvedValue({ id: "plan-1", days: [] });
 
       const { POST } = await import("./route");
@@ -180,12 +222,12 @@ describe("/api/goals", () => {
       expect(res.status).toBe(200);
       expect(body.goal).toMatchObject({ id: "g-new", title: "10K" });
       expect(body.plan).toEqual({ id: "plan-1", days: [] });
-      expect(goalUpdateMany).toHaveBeenCalled();
       expect(generateAndPersistTrainingPlan).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "u1",
           goalId: "g-new",
           timezone: "Europe/Madrid",
+          otherMilestones: [],
         }),
       );
     });
