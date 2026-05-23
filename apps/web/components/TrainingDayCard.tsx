@@ -28,6 +28,7 @@ const WORKOUT_ICONS: Record<RunType, string> = {
   long: "🛣️",
   workout: "💪",
   race: "🏁",
+  strength: "🏋️",
   unknown: "😴",
 };
 
@@ -37,6 +38,7 @@ const WORKOUT_LABELS: Record<RunType, string> = {
   long: "Largo",
   workout: "Trabajo",
   race: "Carrera",
+  strength: "Fuerza",
   unknown: "Descanso",
 };
 
@@ -49,6 +51,7 @@ function getTypePill(type: RunType) {
     long: s.dayTypePillLong,
     workout: s.dayTypePillWorkout,
     race: s.dayTypePillRace,
+    strength: s.dayTypePillStrength,
     unknown: s.dayTypePillRest,
   };
   return map[type];
@@ -57,6 +60,7 @@ function getTypePill(type: RunType) {
 function getCardClass(type: RunType, willTrain: boolean | null, isPast: boolean) {
   if (type === "unknown") return `${s.dayCard} ${s.dayCardRest}`;
   if (type === "race") return `${s.dayCard} ${s.dayCardRace}`;
+  if (type === "strength") return `${s.dayCard} ${s.dayCardStrength}`;
   if (willTrain === true) return `${s.dayCard} ${s.dayCardTrain}`;
   if (willTrain === false || (isPast && willTrain === null)) return `${s.dayCard} ${s.dayCardSkip}`;
   return `${s.dayCard} ${s.dayCardDefault}`;
@@ -96,6 +100,7 @@ export function TrainingDayCard({ day, goalId, isPast }: Props) {
 
   const isRest = day.workoutType === "unknown";
   const isRace = day.workoutType === "race";
+  const isStrength = day.workoutType === "strength";
 
   return (
     <div className={getCardClass(day.workoutType, willTrain, isPast)}>
@@ -119,7 +124,7 @@ export function TrainingDayCard({ day, goalId, isPast }: Props) {
           <div className={s.dayDuration}>⏱ ~{day.durationMin} min</div>
         )}
 
-        {!isRest && (day.targetPace || day.targetZone) && (
+        {!isRest && !isStrength && (day.targetPace || day.targetZone) && (
           <div className={s.dayTargets}>
             {day.targetPace && (
               <span className={s.dayTargetItem}>🏃 Ritmo: {day.targetPace}</span>
@@ -130,7 +135,7 @@ export function TrainingDayCard({ day, goalId, isPast }: Props) {
           </div>
         )}
 
-        {!isRest && day.targetPace && day.targetZone && (
+        {!isRest && !isStrength && day.targetPace && day.targetZone && (
           <div className={s.dayPriorityHint}>
             Si este ritmo te sube por encima de la zona indicada, baja el ritmo hasta
             volver a la zona objetivo.

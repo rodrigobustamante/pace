@@ -500,6 +500,16 @@ export const dayTypePillRest = style({
   color: vars.color.muted,
 });
 
+export const dayTypePillStrength = style({
+  background: "rgba(244,114,182,0.12)",
+  color: vars.color.pink,
+});
+
+export const dayCardStrength = style({
+  background: "rgba(244,114,182,0.05)",
+  border: "1px solid rgba(244,114,182,0.2)",
+});
+
 export const dayDesc = style({
   fontSize: 12,
   color: vars.color.textSlate,
