@@ -11,6 +11,7 @@ const VALID_WORKOUT_TYPES = new Set<RunType>([
   "long",
   "workout",
   "race",
+  "strength",
   "unknown",
 ]);
 
@@ -119,7 +120,7 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
       "date": "YYYY-MM-DD",
       "title": "Título corto del entrenamiento",
       "description": "Descripción detallada de qué hacer y cómo ejecutarlo",
-      "workoutType": "easy|tempo|long|workout|race|unknown",
+      "workoutType": "easy|tempo|long|workout|race|strength|unknown",
       "durationMin": 45,
       "targetPace": "Rango de ritmo objetivo en min/km o null",
       "targetZone": "Zona objetivo de FC (ej: Z2 60-70% FCmax) o null"
@@ -127,23 +128,36 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
   ]
 }
 
-Reglas:
-- workoutType "unknown" + title "Descanso" + durationMin 0 para días de descanso
+Reglas generales:
+- workoutType "unknown" + title "Descanso" + durationMin 0 para días de descanso completo
 - workoutType "race" para el día de la carrera (${raceDate})
 - ~2 días de descanso por semana
 - Última semana: taper (reducir volumen 30-40%)
 - Adapta la intensidad al fitness actual del atleta
-- Incluye SIEMPRE targetPace y targetZone para los días de entrenamiento (easy/tempo/long/workout/race)
-- Para descanso (unknown), usa targetPace: null y targetZone: null
-- targetPace debe ser un rango específico en min/km (ej: "5:20-5:35 min/km")
-- targetZone debe usar nomenclatura de zonas (Z1-Z5) con rango de intensidad
-- El plan debe ser realista con respecto al ritmo medio reciente y las últimas actividades del atleta (evitar ritmos extremadamente lentos o rápidos sin justificación)
-- Para sesiones easy/long en Z2, propone ritmos normalmente cercanos al ritmo aeróbico actual del atleta (aprox +20 a +80 seg/km respecto a su ritmo medio reciente, ajustando por fatiga/objetivo)
-- Si hay conflicto entre ritmo y zona en ejecución real, la prioridad es cumplir la zona objetivo; ajusta el ritmo para mantenerse en la zona prescrita
 - Si el contexto indica sesiones saltadas o fatiga, reduce carga de forma prudente en los próximos días
 - Si hay otros hitos [B-race] o [C-race] antes de la carrera objetivo, incluye un mini-taper de 3-4 días antes de cada uno y retoma carga progresiva después; no sacrifiques la preparación del [A-race]
-- Todas las descripciones en español
-- NO incluyas texto fuera del JSON`;
+
+Reglas para sesiones de running (easy/tempo/long/workout/race):
+- Incluye SIEMPRE targetPace y targetZone
+- targetPace debe ser un rango específico en min/km (ej: "5:20-5:35 min/km")
+- targetZone debe usar nomenclatura de zonas (Z1-Z5) con rango de intensidad
+- El plan debe ser realista con respecto al ritmo medio reciente (evitar ritmos extremadamente lentos o rápidos sin justificación)
+- Para sesiones easy/long en Z2, propone ritmos cercanos al ritmo aeróbico actual (+20 a +80 seg/km respecto al ritmo medio reciente)
+- Si hay conflicto entre ritmo y zona, la prioridad es cumplir la zona objetivo
+
+Reglas para sesiones de fuerza (strength):
+- Incluye 1-2 sesiones de fuerza por semana, preferiblemente el día siguiente a un rodaje largo o duro
+- En la semana de taper, elimina o reduce a 1 sesión de fuerza muy ligera
+- No incluyas fuerza los 3 días previos a la carrera
+- targetPace: null, targetZone: null (no aplica para fuerza)
+- durationMin: entre 30 y 50 minutos típicamente
+- La description debe describir los ejercicios concretos: sentadillas, peso muerto, zancadas, core (planchas, bird-dog, dead bug), ejercicios de cadera (puentes de glúteo, clamshells). Adapta la carga a la proximidad de la carrera: más intensidad al inicio del plan, más ligero y funcional cerca de la carrera.
+
+Reglas para descanso:
+- Para descanso (unknown), usa targetPace: null y targetZone: null
+
+Todas las descripciones en español.
+NO incluyas texto fuera del JSON`;
 
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
