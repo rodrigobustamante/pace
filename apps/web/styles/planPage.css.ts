@@ -787,3 +787,84 @@ export const formCollapseWrapper = style({
   marginTop: 24,
   marginBottom: 8,
 });
+
+// ── Missed days banner ────────────────────────────────────────────────────────
+
+export const missedBanner = style({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 12,
+  background: "rgba(251,146,60,0.08)",
+  border: "1px solid rgba(251,146,60,0.3)",
+  borderRadius: 14,
+  padding: "14px 18px",
+  marginBottom: 24,
+});
+
+export const missedBannerIcon = style({
+  fontSize: 20,
+  flexShrink: 0,
+  marginTop: 1,
+});
+
+export const missedBannerBody = style({
+  flex: 1,
+  minWidth: 0,
+});
+
+export const missedBannerTitle = style({
+  fontSize: 13,
+  fontWeight: 700,
+  color: "#fb923c",
+  marginBottom: 2,
+});
+
+export const missedBannerText = style({
+  fontSize: 12,
+  color: "#94a3b8",
+  lineHeight: 1.5,
+});
+
+export const missedBannerActions = style({
+  display: "flex",
+  gap: 8,
+  marginTop: 10,
+  flexWrap: "wrap",
+});
+
+export const missedBannerBtn = style({
+  fontSize: 12,
+  fontWeight: 600,
+  borderRadius: 7,
+  padding: "5px 12px",
+  cursor: "pointer",
+  fontFamily: "var(--font-dm-sans)",
+  transition: "all 0.15s",
+  border: "1px solid rgba(251,146,60,0.4)",
+  background: "rgba(251,146,60,0.15)",
+  color: "#fb923c",
+  ":disabled": {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+  ":hover": {
+    background: "rgba(251,146,60,0.25)",
+  },
+});
+
+export const missedBannerDismiss = style({
+  fontSize: 12,
+  fontWeight: 600,
+  borderRadius: 7,
+  padding: "5px 12px",
+  cursor: "pointer",
+  fontFamily: "var(--font-dm-sans)",
+  transition: "all 0.15s",
+  border: "1px solid rgba(255,255,255,0.08)",
+  background: "transparent",
+  color: "#64748b",
+  ":hover": {
+    color: "#94a3b8",
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+});

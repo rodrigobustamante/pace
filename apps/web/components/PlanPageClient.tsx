@@ -4,6 +4,7 @@ import { useState } from "react";
 import { GoalForm } from "./GoalForm";
 import { TrainingPlanView } from "./TrainingPlanView";
 import { MilestoneTimeline, type MilestoneCardData } from "./MilestoneTimeline";
+import { MissedDaysBanner } from "./MissedDaysBanner";
 import type { RunType } from "@pace/types";
 import * as s from "@/styles/planPage.css";
 
@@ -90,6 +91,11 @@ export function PlanPageClient({ goals, zoneRanges }: Props) {
         <div className={s.formCollapseWrapper}>
           <GoalForm onSuccess={() => setShowForm(false)} />
         </div>
+      )}
+
+      {/* ── Missed days banner (only when a plan is selected) ── */}
+      {!showForm && selectedGoal?.trainingPlan && (
+        <MissedDaysBanner goalId={selectedGoal.id} />
       )}
 
       {/* ── Training plan for selected milestone ── */}
