@@ -1,5 +1,6 @@
 import { style } from "@vanilla-extract/css";
 import { vars } from "./theme.css";
+import { pulseKeyframes } from "./animations.css";
 
 const mobile = "(max-width: 639px)";
 const narrowMobile = "(max-width: 420px)";
@@ -118,9 +119,23 @@ export const syncDot = style({
   boxShadow: `0 0 8px ${vars.color.green}`,
 });
 
+export const syncDotSyncing = style({
+  width: 8,
+  height: 8,
+  borderRadius: "50%",
+  background: vars.color.yellow,
+  boxShadow: `0 0 8px ${vars.color.yellow}`,
+  animation: `${pulseKeyframes} 1s ease-in-out infinite`,
+});
+
 export const syncLabel = style({
   fontSize: 12,
   color: vars.color.muted,
+});
+
+export const syncLabelSyncing = style({
+  fontSize: 12,
+  color: vars.color.yellow,
 });
 
 export const settingsLink = style({

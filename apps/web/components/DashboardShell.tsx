@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PaceLogo } from "@/components/PaceLogo";
+import { useAutoSync } from "@/hooks/useAutoSync";
 import * as grid from "@/styles/dashboardGrid.css";
 import * as shell from "@/styles/shell.css";
 
@@ -15,6 +16,7 @@ interface Props {
 export function DashboardShell({ user, children }: Props) {
   const pathname = usePathname();
   const t = useTranslations("shell");
+  const { isSyncing } = useAutoSync();
 
   const tabs = [
     { id: "overview", label: t("tabs.overview"), href: "/dashboard" },
@@ -58,8 +60,10 @@ export function DashboardShell({ user, children }: Props) {
 
         <div className={shell.headerRight}>
           <div className={`${shell.syncRow} ${grid.headerSync}`}>
-            <div className={shell.syncDot} />
-            <span className={shell.syncLabel}>{t("synced")}</span>
+            <div className={isSyncing ? shell.syncDotSyncing : shell.syncDot} />
+            <span className={isSyncing ? shell.syncLabelSyncing : shell.syncLabel}>
+              {isSyncing ? t("syncing") : t("synced")}
+            </span>
           </div>
           <Link
             href="/dashboard/settings"
