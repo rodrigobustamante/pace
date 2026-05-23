@@ -109,7 +109,10 @@ Fitness actual: CTL ${ctx.ctl}, ATL ${ctx.atl}, TSB ${ctx.tsb} (${ctx.tsbTrend})
 Volumen semanal reciente: ~${ctx.weeklyKm.toFixed(1)} km/semana
 Ritmo medio reciente: ${ctx.avgPaceFormatted} min/km
 Últimas actividades:
-${ctx.recentActivities.map((a) => `- ${a.date}: ${a.name} ${a.km}km @ ${a.pace}/km`).join("\n")}
+${ctx.recentActivities.map((a) => {
+    const feelStr = a.feel != null ? ` [esfuerzo ${a.feel}/5]` : "";
+    return `- ${a.date}: ${a.name} ${a.km}km @ ${a.pace}/km${feelStr}`;
+  }).join("\n")}
 ${notesBlock}
 Genera un plan día a día desde hoy (${today}) hasta el día de la carrera (${raceDate}) inclusive.
 

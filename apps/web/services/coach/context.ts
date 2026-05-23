@@ -371,6 +371,7 @@ export interface WeeklyContext {
     km: string;
     pace: string;
     avgHR: number | null;
+    feel: number | null;
   }>;
   goal: GoalContext;
   overttrainingRisk: OverttrainingRisk;
@@ -611,6 +612,7 @@ export async function buildWeeklyContext(userId: string, tz = "UTC"): Promise<We
       avgHRbpm: true,
       tss: true,
       name: true,
+      feel: true,
     },
   });
 
@@ -714,6 +716,7 @@ export async function buildWeeklyContext(userId: string, tz = "UTC"): Promise<We
       km: mToKm(a.distanceM),
       pace: secToPace(a.paceSeckm),
       avgHR: a.avgHRbpm,
+      feel: a.feel ?? null,
     }));
 
   // Zone distribution — last 90 days
