@@ -4,6 +4,12 @@ import { normalizeActivity } from "./normalize";
 
 export async function syncActivities(userId: string, since?: Date) {
   const client = await getStravaClient(userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { maxHR: true },
+  });
+  const maxHR = user?.maxHR ?? null;
+
   let page = 1;
   const perPage = 200;
   let hasMore = true;
@@ -33,8 +39,8 @@ export async function syncActivities(userId: string, since?: Date) {
         batch.map((raw: Record<string, unknown>) =>
           prisma.activity.upsert({
             where: { stravaId: BigInt(raw.id as number) },
-            create: { ...normalizeActivity(raw, userId) },
-            update: { ...normalizeActivity(raw, userId) },
+            create: { ...normalizeActivity(raw, userId, maxHR) },
+            update: { ...normalizeActivity(raw, userId, maxHR) },
           }),
         ),
       );
@@ -61,8 +67,8 @@ export async function syncSingleActivity(
 
   await prisma.activity.upsert({
     where: { stravaId: raw.id as number },
-    create: { ...normalizeActivity(raw, user.id) },
-    update: { ...normalizeActivity(raw, user.id) },
+    create: { ...normalizeActivity(raw, user.id, user.maxHR) },
+    update: { ...normalizeActivity(raw, user.id, user.maxHR) },
   });
 }
 

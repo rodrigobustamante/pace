@@ -1,9 +1,16 @@
 import type { Prisma, RunType } from "@pace/db";
+import { calculateFeel } from "@pace/utils";
 
 export function normalizeActivity(
   raw: Record<string, unknown>,
   userId: string,
+  maxHR?: number | null,
 ): Prisma.ActivityCreateInput {
+  const avgHRbpm =
+    raw.average_heartrate != null
+      ? Math.round(raw.average_heartrate as number)
+      : null;
+
   return {
     stravaId: BigInt(raw.id as number),
     user: { connect: { id: userId } },
@@ -18,10 +25,7 @@ export function normalizeActivity(
             (raw.moving_time as number) / ((raw.distance as number) / 1000),
           )
         : 0,
-    avgHRbpm:
-      raw.average_heartrate != null
-        ? Math.round(raw.average_heartrate as number)
-        : null,
+    avgHRbpm,
     maxHRbpm:
       raw.max_heartrate != null
         ? Math.round(raw.max_heartrate as number)
@@ -34,6 +38,7 @@ export function normalizeActivity(
     elevationM: raw.total_elevation_gain != null ? (raw.total_elevation_gain as number) : null,
     caloriesKcal: raw.calories != null ? (raw.calories as number) : null,
     stravaData: raw as Prisma.InputJsonValue,
+    feel: calculateFeel(avgHRbpm, maxHR) ?? undefined,
   };
 }
 
