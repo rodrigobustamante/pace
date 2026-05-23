@@ -9,8 +9,8 @@ const secsUntilLocalMidnight = vi.fn();
 const redisGet = vi.fn();
 const redisDel = vi.fn();
 const redisSetex = vi.fn();
-const generateContent = vi.fn();
-const getGenerativeModel = vi.fn();
+const generateTextMock = vi.fn();
+const getModelMock = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getUserFromRequest,
@@ -38,21 +38,24 @@ vi.mock("@/lib/redis", () => ({
   },
 }));
 
-vi.mock("@google/generative-ai", () => ({
-  GoogleGenerativeAI: class {
-    getGenerativeModel = getGenerativeModel;
-  },
+vi.mock("ai", () => ({ generateText: generateTextMock }));
+
+vi.mock("@/services/ai/registry", () => ({
+  getModel: getModelMock,
 }));
 
 describe("GET /api/coach/daily", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    generateContent.mockReset();
     redisGet.mockResolvedValue(null);
 
-    getGenerativeModel.mockReturnValue({
-      generateContent,
+    getModelMock.mockReturnValue({
+      model: { /* opaque LanguageModel */ },
+      info: { id: "gemini-2.5-flash", provider: "gemini", available: true },
+    });
+    generateTextMock.mockResolvedValue({
+      text: JSON.stringify({ recommendation: "rest" }),
     });
     localDateStr.mockReturnValue("2026-04-25");
     secsUntilLocalMidnight.mockReturnValue(3600);
@@ -103,19 +106,16 @@ describe("GET /api/coach/daily", () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ recommendation: "rest" });
-    expect(generateContent).not.toHaveBeenCalled();
+    expect(generateTextMock).not.toHaveBeenCalled();
   });
 
   it("clears cache when refresh=1 and regenerates recommendation", async () => {
     getUserFromRequest.mockResolvedValue({ id: "u1" });
-    generateContent.mockResolvedValue({
-      response: {
-        text: () =>
-          JSON.stringify({
-            recommendation: "train",
-            title: "Entrena hoy",
-          }),
-      },
+    generateTextMock.mockResolvedValue({
+      text: JSON.stringify({
+        recommendation: "train",
+        title: "Entrena hoy",
+      }),
     });
 
     const { GET } = await import("./route");
@@ -167,15 +167,13 @@ describe("GET /api/coach/daily", () => {
       },
       goal: { name: "10K" },
     });
-    generateContent.mockResolvedValue({
-      response: { text: () => JSON.stringify({ recommendation: "rest" }) },
-    });
 
     const { GET } = await import("./route");
     const req = new NextRequest("http://localhost/api/coach/daily");
     await GET(req);
 
-    const prompt = generateContent.mock.calls[0]?.[0] as string;
+    const callArgs = generateTextMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> };
+    const prompt = callArgs.messages[0]?.content as string;
     expect(prompt).toContain("Last run: Series (today)");
     expect(prompt).toContain("Days since last run: ran today already");
     expect(prompt).toContain("Overtraining signals (danger)");
@@ -183,10 +181,6 @@ describe("GET /api/coach/daily", () => {
 
   it("builds prompt labels for yesterday and older activities", async () => {
     getUserFromRequest.mockResolvedValue({ id: "u1" });
-    generateContent.mockResolvedValue({
-      response: { text: () => JSON.stringify({ recommendation: "train" }) },
-    });
-
     const { GET } = await import("./route");
 
     buildDailyContext.mockResolvedValueOnce({
@@ -220,10 +214,11 @@ describe("GET /api/coach/daily", () => {
       goal: null,
     });
     await GET(new NextRequest("http://localhost/api/coach/daily?refresh=1"));
-    const yesterdayPrompt = generateContent.mock.calls[0]?.[0] as string;
+    const callArgs0 = generateTextMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> };
+    const yesterdayPrompt = callArgs0.messages[0]?.content as string;
     expect(yesterdayPrompt).toContain("Last run: Easy run (yesterday)");
 
-    generateContent.mockClear();
+    generateTextMock.mockClear();
 
     buildDailyContext.mockResolvedValueOnce({
       userName: "Rod",
@@ -256,13 +251,14 @@ describe("GET /api/coach/daily", () => {
       goal: null,
     });
     await GET(new NextRequest("http://localhost/api/coach/daily?refresh=1"));
-    const olderPrompt = generateContent.mock.calls[0]?.[0] as string;
+    const callArgs1 = generateTextMock.mock.calls[0]?.[0] as { messages: Array<{ content: string }> };
+    const olderPrompt = callArgs1.messages[0]?.content as string;
     expect(olderPrompt).toContain("Last run: Long run (4 days ago)");
   });
 
   it("returns 500 when model call fails", async () => {
     getUserFromRequest.mockResolvedValue({ id: "u1" });
-    generateContent.mockRejectedValue(new Error("Provider timeout"));
+    generateTextMock.mockRejectedValue(new Error("Provider timeout"));
 
     const { GET } = await import("./route");
     const req = new NextRequest("http://localhost/api/coach/daily");

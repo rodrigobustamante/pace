@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
+import { getModel } from "@/services/ai/registry";
 import {
   buildDailyContext,
   formatGoalForPrompt,
@@ -10,7 +11,7 @@ import {
 import { redis } from "@/lib/redis";
 import { cookies } from "next/headers";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
 
 function buildDailySystemPrompt(lang: string) {
   const langInstruction =
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
+  const locale = (await cookies()).get("NEXT_LOCALE")?.value ?? "es";
   const tz    = req.headers.get("X-User-Timezone") ?? "UTC";
   const today = localDateStr(tz);
   const cacheKey = `coach:daily:${user.id}:${today}:${locale}`;
@@ -97,17 +98,13 @@ ${goalBlock}
 Generate the daily recommendation in JSON following the decision hierarchy in your instructions.
 If a planned workout exists for today, it is the default — deviate from it only if the hard-stop criteria are met (TSB < -20, consecutive days ≥ 5, or ATL > 2× CTL). Cite the specific numbers that justify your decision.`;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: buildDailySystemPrompt(locale),
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.35,
-      },
+    const { model } = getModel(user.preferredModel);
+    const { text: raw } = await generateText({
+      model,
+      system: buildDailySystemPrompt(locale),
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.35,
     });
-
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
     const parsed = JSON.parse(raw) as Record<string, unknown>;
 
     // Cache until end of the user's local day

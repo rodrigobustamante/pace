@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { streamText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
 import {
   buildWeeklyContext,
@@ -7,21 +7,27 @@ import {
 } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/db";
+import { getModel } from "@/services/ai/registry";
 import { cookies } from "next/headers";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 const HISTORY_TTL = 60 * 60 * 24 * 7; // 7 days
-const MAX_HISTORY_TURNS = 20; // keep last 20 turns (10 exchanges)
+const MAX_HISTORY_TURNS = 20; // keep last 20 message objects (10 exchanges)
 
-type GeminiRole = "user" | "model";
-interface HistoryTurn {
-  role: GeminiRole;
-  parts: { text: string }[];
+/** Normalized history stored in Redis and DB — provider-agnostic. */
+interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
+/** v2 key uses normalized format; v1 keys (Gemini-specific) are abandoned */
 function historyKey(userId: string, conversationId: string) {
-  return `coach:chat:${userId}:${conversationId}`;
+  return `coach:chat:v2:${userId}:${conversationId}`;
+}
+
+/** Coerce legacy "model" role (Gemini) to the normalized "assistant".
+ *  "user" stays "user"; anything else ("model" or "assistant") → "assistant". */
+function normalizeRole(role: string): "user" | "assistant" {
+  return role === "user" ? "user" : "assistant";
 }
 
 export async function POST(req: NextRequest) {
@@ -60,15 +66,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load history: Redis first, fall back to DB on cache miss
+  // ── Load history: Redis first, DB on cache miss ────────────────────────
   const key = historyKey(user.id, conversationId);
   const raw = await redis.get(key);
-  let history: HistoryTurn[] = [];
+  let history: HistoryMessage[] = [];
 
   if (raw) {
-    history = JSON.parse(raw) as HistoryTurn[];
+    history = JSON.parse(raw) as HistoryMessage[];
   } else {
-    // Redis cache miss — load from DB and warm cache
     const dbMessages = await prisma.coachChat.findMany({
       where: { userId: user.id, conversationId },
       orderBy: { createdAt: "asc" },
@@ -77,14 +82,14 @@ export async function POST(req: NextRequest) {
     });
     if (dbMessages.length > 0) {
       history = dbMessages.map((m) => ({
-        role: m.role as GeminiRole,
-        parts: [{ text: m.content }],
+        role: normalizeRole(m.role),
+        content: m.content,
       }));
       await redis.setex(key, HISTORY_TTL, JSON.stringify(history));
     }
   }
 
-  // Build system prompt with athlete context
+  // ── Build system prompt ───────────────────────────────────────────────
   const cookieStore = await cookies();
   const locale = cookieStore.get("NEXT_LOCALE")?.value ?? "es";
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
@@ -117,13 +122,14 @@ ${ctx.recentActivities.map((a) => `  · ${a.date}: ${a.name} — ${a.km}km @ ${a
 
 ${goalBlock}`;
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction,
-    generationConfig: { temperature: 0.5 },
-  });
+  // ── Select model (user preference → fallback) ─────────────────────────
+  const { model } = getModel(user.preferredModel);
 
-  const chat = model.startChat({ history });
+  // ── Stream response ───────────────────────────────────────────────────
+  const messages = [
+    ...history,
+    { role: "user" as const, content: message },
+  ];
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -131,13 +137,17 @@ ${goalBlock}`;
       let fullResponse = "";
 
       try {
-        const result = await chat.sendMessageStream(message);
+        const result = streamText({
+          model,
+          system: systemInstruction,
+          messages,
+          temperature: 0.5,
+        });
 
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            fullResponse += text;
-            controller.enqueue(encoder.encode(text));
+        for await (const chunk of result.textStream) {
+          if (chunk) {
+            fullResponse += chunk;
+            controller.enqueue(encoder.encode(chunk));
           }
         }
 
@@ -145,15 +155,15 @@ ${goalBlock}`;
         await prisma.coachChat.createMany({
           data: [
             { userId: user.id, conversationId, role: "user", content: message },
-            { userId: user.id, conversationId, role: "model", content: fullResponse },
+            { userId: user.id, conversationId, role: "assistant", content: fullResponse },
           ],
         });
 
-        // Update Redis cache with new history (trim to MAX_HISTORY_TURNS)
-        const newHistory: HistoryTurn[] = [
+        // Update Redis with new history (trim to MAX_HISTORY_TURNS)
+        const newHistory: HistoryMessage[] = [
           ...history,
-          { role: "user" as const, parts: [{ text: message }] },
-          { role: "model" as const, parts: [{ text: fullResponse }] },
+          { role: "user" as const, content: message },
+          { role: "assistant" as const, content: fullResponse },
         ].slice(-MAX_HISTORY_TURNS);
 
         await redis.setex(key, HISTORY_TTL, JSON.stringify(newHistory));

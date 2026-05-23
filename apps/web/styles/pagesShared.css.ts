@@ -325,6 +325,91 @@ export const settingsFieldLabel = style({
   marginBottom: 16,
 });
 
+// ── Model selector (settings page) ──────────────────────────────────────────
+
+export const modelGrid = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: 8,
+});
+
+export const modelCard = style({
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "12px 16px",
+  borderRadius: 10,
+  border: `1px solid ${vars.color.borderSubtle}`,
+  background: vars.color.overlayMed,
+  cursor: "pointer",
+  transition: "border-color 0.15s, background 0.15s",
+  textAlign: "left",
+  width: "100%",
+  ":hover": {
+    borderColor: "rgba(249,115,22,0.3)",
+    background: vars.color.overlayHover,
+  },
+});
+
+export const modelCardActive = style({
+  borderColor: "rgba(249,115,22,0.55)",
+  background: "rgba(249,115,22,0.06)",
+});
+
+export const modelCardDisabled = style({
+  opacity: 0.45,
+  cursor: "not-allowed",
+  ":hover": {
+    borderColor: vars.color.borderSubtle,
+    background: vars.color.overlayMed,
+  },
+});
+
+export const modelIcon = style({
+  fontSize: 18,
+  flexShrink: 0,
+  lineHeight: 1,
+});
+
+export const modelCardBody = style({
+  flex: 1,
+  minWidth: 0,
+});
+
+export const modelName = style({
+  fontSize: 13,
+  fontWeight: 600,
+  color: vars.color.foreground,
+  fontFamily: vars.font.dmSans,
+});
+
+export const modelMeta = style({
+  fontSize: 11,
+  color: vars.color.muted,
+  marginTop: 1,
+  fontFamily: vars.font.dmMono,
+});
+
+export const modelBadge = style({
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  padding: "2px 7px",
+  borderRadius: 4,
+  flexShrink: 0,
+  fontFamily: vars.font.dmMono,
+});
+
+export const modelSaveFeedback = style({
+  fontSize: 11,
+  marginTop: 10,
+  fontFamily: vars.font.dmMono,
+  minHeight: 16,
+});
+
+// ── homeRoot ─────────────────────────────────────────────────────────────────
+
 export const homeRoot = style({
   minHeight: "100vh",
   background: vars.color.background,

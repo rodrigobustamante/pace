@@ -23,6 +23,7 @@ model User {
   accessToken       String
   refreshToken      String
   tokenExpiresAt    DateTime
+  preferredModel    String        @default("gemini-2.5-flash")
   activities        Activity[]
   coachInsights     CoachInsight[]
   coachChats        CoachChat[]

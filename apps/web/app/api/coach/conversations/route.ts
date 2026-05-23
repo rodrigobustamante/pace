@@ -5,10 +5,9 @@ import { redis } from "@/lib/redis";
 
 const HISTORY_TTL = 60 * 60 * 24 * 7; // 7 days
 
-type GeminiRole = "user" | "model";
-
+/** Must match the v2 key format used in the chat route */
 function historyKey(userId: string, conversationId: string) {
-  return `coach:chat:${userId}:${conversationId}`;
+  return `coach:chat:v2:${userId}:${conversationId}`;
 }
 
 /**
@@ -35,11 +34,12 @@ export async function GET(req: NextRequest) {
       select: { role: true, content: true, createdAt: true },
     });
 
-    // Warm Redis cache so the next send is fast
+    // Warm Redis v2 cache so the next send is fast
     if (messages.length > 0) {
       const history = messages.map((m) => ({
-        role: m.role as GeminiRole,
-        parts: [{ text: m.content }],
+        // Coerce legacy "model" role (Gemini) to the normalized "assistant"
+        role: m.role === "model" ? ("assistant" as const) : (m.role as "user" | "assistant"),
+        content: m.content,
       }));
       const key = historyKey(user.id, conversationId);
       const existing = await redis.get(key);

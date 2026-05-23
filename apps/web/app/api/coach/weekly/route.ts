@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { streamText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
 import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+import { getModel } from "@/services/ai/registry";
 
 const COACH_SYSTEM_PROMPT = `You are an expert, personalized running coach in the style of Runna.
 You analyze real athlete data and give concrete, personalized, actionable advice.
@@ -104,11 +103,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction: COACH_SYSTEM_PROMPT,
-    generationConfig: { temperature: 0.4 },
-  });
+  const { model } = getModel(user.preferredModel);
 
   const goalBlock = formatGoalForPrompt(context.goal);
 
@@ -168,10 +163,14 @@ Generate the weekly analysis in JSON. If there is an active goal, the analysis m
     async start(controller) {
       let fullText = "";
       try {
-        const result = await model.generateContentStream(prompt);
+        const result = streamText({
+          model,
+          system: COACH_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.4,
+        });
 
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
+        for await (const text of result.textStream) {
           if (text) {
             fullText += text;
             controller.enqueue(encode({ type: "chunk", text }));

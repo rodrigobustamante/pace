@@ -12,6 +12,10 @@
     "test:coverage": "vitest run --coverage --config ./vitest.config.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.79",
+    "@ai-sdk/google": "^3.0.79",
+    "@ai-sdk/openai": "^3.0.65",
+    "@anthropic-ai/sdk": "^0.98.0",
     "@google/generative-ai": "^0.21.0",
     "@pace/db": "workspace:*",
     "@pace/types": "workspace:*",
@@ -21,9 +25,11 @@
     "@vanilla-extract/dynamic": "^2.1.5",
     "@vanilla-extract/next-plugin": "^2.5.2",
     "@vercel/functions": "^3.4.3",
+    "ai": "^6.0.191",
     "ioredis": "^5.4.1",
     "next": "14.2.35",
     "next-intl": "^4.11.0",
+    "openai": "^6.39.0",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^2.13.3",

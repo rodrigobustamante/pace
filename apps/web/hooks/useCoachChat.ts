@@ -45,7 +45,8 @@ export function useCoachChat() {
       };
       setMessages(
         data.messages.map((m) => ({
-          role: m.role as "user" | "model",
+          // Normalize DB "assistant" and legacy "model" to display role "model"
+          role: m.role === "user" ? ("user" as const) : ("model" as const),
           content: m.content,
         })),
       );

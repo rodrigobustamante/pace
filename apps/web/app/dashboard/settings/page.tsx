@@ -2,12 +2,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { HRZonesSetup } from "@/components/HRZonesSetup";
 import { SyncButton } from "@/components/SyncButton";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { ModelSelector } from "@/components/ModelSelector";
+import { getAllModels } from "@/services/ai/registry";
 import { getTranslations } from "next-intl/server";
 import * as s from "@/styles/pagesShared.css";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   const t = await getTranslations("settings");
+  const allModels = getAllModels();
 
   return (
     <div className={s.maxWidth480}>
@@ -49,6 +52,14 @@ export default async function SettingsPage() {
         <div className={s.settingsRowLast}>
           <div className={s.settingsFieldLabel}>{t("languageSection")}</div>
           <LanguageSwitch />
+        </div>
+
+        <div className={s.settingsRowBorderTop}>
+          <div className={s.settingsFieldLabel}>Modelo de IA</div>
+          <ModelSelector
+            allModels={allModels}
+            currentModel={user?.preferredModel ?? "gemini-2.5-flash"}
+          />
         </div>
 
         <div className={s.settingsRowBorderTop}>

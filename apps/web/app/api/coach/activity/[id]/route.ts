@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
+import { getModel } from "@/services/ai/registry";
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
 import {
@@ -11,7 +12,6 @@ import {
   calculateRunTSS,
 } from "@pace/utils";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 const ACTIVITY_COACH_SYSTEM_PROMPT = `You are an expert running coach analyzing a single training session.
 Give concrete, data-driven feedback on the quality and execution of this specific run.
@@ -85,18 +85,15 @@ Performance:
 
 Generate the activity analysis in JSON.`;
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction: ACTIVITY_COACH_SYSTEM_PROMPT,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.35,
-    },
-  });
+  const { model } = getModel(user.preferredModel);
 
   try {
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
+    const { text: raw } = await generateText({
+      model,
+      system: ACTIVITY_COACH_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.35,
+    });
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     const parsed = JSON.parse(raw.slice(start, end + 1));
