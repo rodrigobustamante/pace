@@ -15,7 +15,7 @@ export function normalizeActivity(
     stravaId: BigInt(raw.id as number),
     user: { connect: { id: userId } },
     name: raw.name as string,
-    type: inferRunType(raw),
+    type: inferRunType(raw, avgHRbpm, maxHR),
     date: new Date(raw.start_date as string),
     distanceM: raw.distance as number,
     durationSec: raw.moving_time as number,
@@ -42,25 +42,44 @@ export function normalizeActivity(
   };
 }
 
-function inferRunType(raw: Record<string, unknown>): RunType {
+function inferRunType(
+  raw: Record<string, unknown>,
+  avgHRbpm?: number | null,
+  maxHR?: number | null,
+): RunType {
   const name = ((raw.name as string) || "").toLowerCase();
   const workoutType = raw.workout_type as number | undefined;
 
+  // 1. Strava explicit workout type takes priority
   if (workoutType === 1) return "race";
   if (workoutType === 2) return "long";
   if (workoutType === 3) return "workout";
+
+  // 2. Name-based keywords
   if (
     name.includes("tempo") ||
     name.includes("interval") ||
-    name.includes("fartlek")
+    name.includes("fartlek") ||
+    name.includes("series")
   )
     return "tempo";
   if (name.includes("largo") || name.includes("long")) return "long";
   if (
     name.includes("recup") ||
     name.includes("easy") ||
-    name.includes("fácil")
+    name.includes("fácil") ||
+    name.includes("suave")
   )
     return "easy";
+
+  // 3. HR-based fallback when name gives no signal
+  if (avgHRbpm && maxHR && maxHR > 0) {
+    const pct = avgHRbpm / maxHR;
+    if (pct >= 0.9) return "workout"; // Z5 — race-pace / VO2max
+    if (pct >= 0.8) return "workout"; // Z4 — threshold / intervals
+    if (pct >= 0.7) return "tempo";   // Z3 — aerobic threshold
+    return "easy";                    // Z1–Z2
+  }
+
   return "easy";
 }
