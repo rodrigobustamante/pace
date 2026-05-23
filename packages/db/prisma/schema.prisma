@@ -25,6 +25,7 @@ model User {
   tokenExpiresAt    DateTime
   activities        Activity[]
   coachInsights     CoachInsight[]
+  coachChats        CoachChat[]
   goals             Goal[]
   trainingPlans     TrainingPlan[]
   trainingDays      TrainingDay[]
@@ -142,4 +143,17 @@ model TrainingDay {
 
   @@unique([planId, date])
   @@index([userId])
+}
+
+model CoachChat {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String
+  role           String   // "user" | "model"
+  content        String
+  createdAt      DateTime @default(now())
+
+  @@index([userId, conversationId, createdAt])
+  @@index([userId, createdAt])
 }

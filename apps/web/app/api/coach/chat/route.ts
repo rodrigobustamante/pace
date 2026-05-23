@@ -6,6 +6,7 @@ import {
   formatGoalForPrompt,
 } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
+import { prisma } from "@/lib/db";
 import { cookies } from "next/headers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -59,13 +60,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load history from Redis
+  // Load history: Redis first, fall back to DB on cache miss
   const key = historyKey(user.id, conversationId);
   const raw = await redis.get(key);
-  const history: HistoryTurn[] = raw ? (JSON.parse(raw) as HistoryTurn[]) : [];
+  let history: HistoryTurn[] = [];
+
+  if (raw) {
+    history = JSON.parse(raw) as HistoryTurn[];
+  } else {
+    // Redis cache miss — load from DB and warm cache
+    const dbMessages = await prisma.coachChat.findMany({
+      where: { userId: user.id, conversationId },
+      orderBy: { createdAt: "asc" },
+      take: MAX_HISTORY_TURNS,
+      select: { role: true, content: true },
+    });
+    if (dbMessages.length > 0) {
+      history = dbMessages.map((m) => ({
+        role: m.role as GeminiRole,
+        parts: [{ text: m.content }],
+      }));
+      await redis.setex(key, HISTORY_TTL, JSON.stringify(history));
+    }
+  }
 
   // Build system prompt with athlete context
-  const locale = cookies().get("NEXT_LOCALE")?.value ?? "es";
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("NEXT_LOCALE")?.value ?? "es";
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
   const ctx = await buildWeeklyContext(user.id, tz);
 
@@ -120,7 +141,15 @@ ${goalBlock}`;
           }
         }
 
-        // Persist updated history (trim to MAX_HISTORY_TURNS)
+        // Write-through: persist both turns to DB
+        await prisma.coachChat.createMany({
+          data: [
+            { userId: user.id, conversationId, role: "user", content: message },
+            { userId: user.id, conversationId, role: "model", content: fullResponse },
+          ],
+        });
+
+        // Update Redis cache with new history (trim to MAX_HISTORY_TURNS)
         const newHistory: HistoryTurn[] = [
           ...history,
           { role: "user" as const, parts: [{ text: message }] },

@@ -8,6 +8,8 @@ const redisSetex = vi.fn();
 const sendMessageStream = vi.fn();
 const startChat = vi.fn();
 const getGenerativeModel = vi.fn();
+const coachChatCreateMany = vi.fn();
+const coachChatFindMany = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getUserFromRequest,
@@ -32,6 +34,15 @@ vi.mock("@/lib/redis", () => ({
   },
 }));
 
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    coachChat: {
+      createMany: coachChatCreateMany,
+      findMany: coachChatFindMany,
+    },
+  },
+}));
+
 vi.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: class {
     getGenerativeModel = getGenerativeModel;
@@ -52,6 +63,9 @@ describe("POST /api/coach/chat", () => {
     });
 
     formatGoalForPrompt.mockReturnValue("Goal block");
+    coachChatCreateMany.mockResolvedValue({ count: 2 });
+    coachChatFindMany.mockResolvedValue([]);
+
     buildWeeklyContext.mockResolvedValue({
       userName: "Rod",
       maxHR: 190,
@@ -111,7 +125,7 @@ describe("POST /api/coach/chat", () => {
     expect(response.status).toBe(400);
   });
 
-  it("streams model response and persists history", async () => {
+  it("streams model response, persists to DB, and updates Redis", async () => {
     getUserFromRequest.mockResolvedValue({ id: "u1" });
     redisGet.mockResolvedValue(JSON.stringify([]));
     sendMessageStream.mockResolvedValue({
@@ -138,6 +152,16 @@ describe("POST /api/coach/chat", () => {
     const text = await response.text();
     expect(text).toBe("Hola runner");
     expect(buildWeeklyContext).toHaveBeenCalledWith("u1", "Europe/Madrid");
+
+    // DB write-through
+    expect(coachChatCreateMany).toHaveBeenCalledWith({
+      data: [
+        { userId: "u1", conversationId: "c1", role: "user", content: "Que recomiendas hoy?" },
+        { userId: "u1", conversationId: "c1", role: "model", content: "Hola runner" },
+      ],
+    });
+
+    // Redis updated
     expect(redisSetex).toHaveBeenCalledTimes(1);
     expect(startChat).toHaveBeenCalledWith({ history: [] });
   });
@@ -156,6 +180,49 @@ describe("POST /api/coach/chat", () => {
     const body = await response.json();
     expect(response.status).toBe(400);
     expect(body.error).toContain("message and conversationId required");
+  });
+
+  it("loads history from DB when Redis misses, then warms cache", async () => {
+    getUserFromRequest.mockResolvedValue({ id: "u1" });
+    // Redis cache miss
+    redisGet.mockResolvedValue(null);
+    // DB returns one prior turn
+    coachChatFindMany.mockResolvedValue([
+      { role: "user", content: "prev question" },
+      { role: "model", content: "prev answer" },
+    ]);
+    sendMessageStream.mockResolvedValue({
+      stream: (async function* streamChunks() {
+        yield { text: () => "Respuesta nueva" };
+      })(),
+    });
+
+    const { POST } = await import("./route");
+    const req = new Request("http://localhost/api/coach/chat", {
+      method: "POST",
+      body: JSON.stringify({ message: "Sigue", conversationId: "c-db" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(req as never);
+    const text = await response.text();
+    expect(text).toBe("Respuesta nueva");
+
+    // DB was queried for history
+    expect(coachChatFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "u1", conversationId: "c-db" } }),
+    );
+
+    // Redis warmed with DB content, then updated again after stream
+    expect(redisSetex).toHaveBeenCalledTimes(2);
+
+    // Chat started with DB history
+    expect(startChat).toHaveBeenCalledWith({
+      history: [
+        { role: "user", parts: [{ text: "prev question" }] },
+        { role: "model", parts: [{ text: "prev answer" }] },
+      ],
+    });
   });
 
   it("uses existing redis history and handles empty stream chunks", async () => {
@@ -183,6 +250,8 @@ describe("POST /api/coach/chat", () => {
     expect(startChat).toHaveBeenCalledWith({
       history: [{ role: "user", parts: [{ text: "prev question" }] }],
     });
+    // DB not consulted when Redis has data
+    expect(coachChatFindMany).not.toHaveBeenCalled();
   });
 
   it("builds risk line when overtraining signals are present", async () => {
@@ -238,7 +307,7 @@ describe("POST /api/coach/chat", () => {
     );
   });
 
-  it("streams error marker when provider throws", async () => {
+  it("streams error marker when provider throws, does not persist to DB", async () => {
     getUserFromRequest.mockResolvedValue({ id: "u1" });
     redisGet.mockResolvedValue(null);
     sendMessageStream.mockRejectedValue(new Error("Gemini down"));
@@ -253,5 +322,7 @@ describe("POST /api/coach/chat", () => {
     const response = await POST(req as never);
     const text = await response.text();
     expect(text).toContain("[Error: Gemini down]");
+    // On error the DB write is skipped
+    expect(coachChatCreateMany).not.toHaveBeenCalled();
   });
 });

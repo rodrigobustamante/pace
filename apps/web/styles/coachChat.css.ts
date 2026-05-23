@@ -243,3 +243,91 @@ export const sendBtnDisabled = style({
   color: vars.color.slate,
   cursor: "not-allowed",
 });
+
+// ── History panel ────────────────────────────────────────────────────────────
+
+export const historyBtn = style({
+  background: "transparent",
+  border: "none",
+  color: vars.color.slate,
+  fontSize: 11,
+  cursor: "pointer",
+  fontFamily: vars.font.dmSans,
+  padding: "2px 6px",
+  ":hover": {
+    color: vars.color.textSlate,
+  },
+});
+
+export const historyBtnActive = style({
+  color: vars.color.orange,
+});
+
+export const historyPanel = style({
+  flex: 1,
+  overflowY: "auto",
+  padding: "8px 12px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+});
+
+export const historyEmpty = style({
+  margin: "auto",
+  textAlign: "center",
+  color: vars.color.muted,
+  fontSize: 12,
+  padding: "24px 0",
+});
+
+export const historyItem = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: 10,
+  background: vars.color.overlayMed,
+  border: `1px solid ${vars.color.borderSubtle}`,
+  cursor: "pointer",
+  transition: "border-color 0.15s, background 0.15s",
+  textAlign: "left",
+  ":hover": {
+    borderColor: "rgba(249,115,22,0.3)",
+    background: vars.color.overlayHover,
+  },
+});
+
+export const historyItemActive = style({
+  borderColor: "rgba(249,115,22,0.45)",
+  background: vars.color.orangeGlow,
+});
+
+export const historyItemPreview = style({
+  fontSize: 12,
+  color: vars.color.textMutedLight,
+  fontFamily: vars.font.dmSans,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const historyItemMeta = style({
+  fontSize: 10,
+  color: vars.color.muted,
+  fontFamily: vars.font.dmMono,
+});
+
+export const historyLoadingRow = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  color: vars.color.muted,
+  fontSize: 12,
+  padding: "24px 0",
+});
+
+export const loadingDots = style({
+  display: "inline-flex",
+  gap: 4,
+});

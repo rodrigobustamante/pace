@@ -8,8 +8,10 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslations } from "next-intl";
-import { useCoachChat, type ChatMessage } from "@/hooks/useCoachChat";
+import { useCoachChat, type ChatMessage, type ConversationPreview } from "@/hooks/useCoachChat";
 import * as cc from "@/styles/coachChat.css";
+
+// ── Markdown renderer ────────────────────────────────────────────────────────
 
 function renderMarkdown(text: string): ReactNode {
   const lines = text.split("\n");
@@ -98,6 +100,8 @@ function inlineMarkdown(text: string, baseKey: number): ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
+// ── Message bubble ───────────────────────────────────────────────────────────
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
 
@@ -105,9 +109,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
     <div
       className={`${cc.bubbleRow} ${isUser ? cc.bubbleRowUser : cc.bubbleRowAssistant}`}
     >
-      {!isUser && (
-        <div className={cc.avatarBot}>🤖</div>
-      )}
+      {!isUser && <div className={cc.avatarBot}>🤖</div>}
       <div
         className={`${cc.bubble} ${isUser ? cc.bubbleUser : cc.bubbleAssistant}`}
       >
@@ -118,17 +120,113 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
+// ── History panel ────────────────────────────────────────────────────────────
+
+function relativeDate(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days === 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  if (days < 7) return `Hace ${days} días`;
+  if (days < 30) return `Hace ${Math.floor(days / 7)} sem`;
+  return `Hace ${Math.floor(days / 30)} mes`;
+}
+
+interface HistoryPanelProps {
+  currentConversationId: string;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+}
+
+function HistoryPanel({ currentConversationId, onSelect, onNew }: HistoryPanelProps) {
+  const [conversations, setConversations] = useState<ConversationPreview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch("/api/coach/conversations")
+      .then((r) => r.json())
+      .then((data: { conversations?: ConversationPreview[] }) => {
+        if (!cancelled) setConversations(data.conversations ?? []);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className={cc.historyPanel}>
+        <div className={cc.historyLoadingRow}>
+          <span>Cargando historial…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div className={cc.historyPanel}>
+        <div className={cc.historyEmpty}>Sin conversaciones anteriores</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cc.historyPanel}>
+      {conversations.map((c) => {
+        const isActive = c.conversationId === currentConversationId;
+        return (
+          <button
+            key={c.conversationId}
+            type="button"
+            className={`${cc.historyItem} ${isActive ? cc.historyItemActive : ""}`}
+            onClick={() => onSelect(c.conversationId)}
+          >
+            <span className={cc.historyItemPreview}>
+              {c.preview}{c.preview.length >= 60 ? "…" : ""}
+            </span>
+            <span className={cc.historyItemMeta}>
+              {relativeDate(c.updatedAt)} · {c.messageCount} mensajes
+            </span>
+          </button>
+        );
+      })}
+
+      <button type="button" className={cc.historyItem} onClick={onNew}>
+        <span className={cc.historyItemPreview} style={{ color: "#f97316" }}>
+          + Nueva conversación
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+
 export function CoachChat() {
   const t = useTranslations("coach");
   const suggestedQuestions = t.raw("suggestedQuestions") as string[];
-  const { messages, isStreaming, send, reset } = useCoachChat();
+  const {
+    messages,
+    isStreaming,
+    isLoadingHistory,
+    currentConversationId,
+    send,
+    startNew,
+    loadConversation,
+  } = useCoachChat();
   const [input, setInput] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!showHistory) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, showHistory]);
 
   function handleSend() {
     const text = input.trim();
@@ -144,74 +242,113 @@ export function CoachChat() {
     }
   }
 
-  const isEmpty = messages.length === 0;
-  const sendDisabled = isStreaming || !input.trim();
+  function handleSelectConversation(id: string) {
+    void loadConversation(id);
+    setShowHistory(false);
+  }
+
+  function handleNew() {
+    startNew();
+    setShowHistory(false);
+  }
+
+  const isEmpty = messages.length === 0 && !isLoadingHistory;
+  const sendDisabled = isStreaming || isLoadingHistory || !input.trim();
 
   return (
     <div className={cc.root}>
+      {/* ── Header ── */}
       <div className={cc.header}>
         <div className={cc.headerLeft}>
           <span className={cc.headerTitle}>{t("chatPanelTitle")}</span>
-          {isStreaming ? (
+          {isStreaming && (
             <span className={cc.headerStatus}>{t("chatTyping")}</span>
-          ) : null}
+          )}
+          {isLoadingHistory && (
+            <span className={cc.headerStatus}>Cargando…</span>
+          )}
         </div>
-        {!isEmpty ? (
-          <button type="button" onClick={reset} className={cc.resetBtn}>
-            {t("chatReset")}
+        <div className={cc.headerLeft}>
+          <button
+            type="button"
+            className={`${cc.historyBtn} ${showHistory ? cc.historyBtnActive : ""}`}
+            onClick={() => setShowHistory((v) => !v)}
+          >
+            {showHistory ? "✕ Cerrar" : "📋 Historial"}
           </button>
-        ) : null}
+          {!showHistory && (
+            <button type="button" onClick={handleNew} className={cc.resetBtn}>
+              {t("chatReset")}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className={cc.messages}>
-        {isEmpty ? (
-          <div className={cc.emptyWrap}>
-            <div className={cc.emptyHint}>{t("chatEmptyHint")}</div>
-            <div className={cc.suggestedCol}>
-              {suggestedQuestions.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className={cc.suggestedBtn}
-                  onClick={() => {
-                    setInput(q);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg, i) => (
-              <MessageBubble key={i} msg={msg} />
-            ))}
-            <div ref={bottomRef} />
-          </>
-        )}
-      </div>
-
-      <div className={cc.inputBar}>
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t("chatPlaceholder")}
-          rows={1}
-          className={cc.textarea}
+      {/* ── History panel or messages ── */}
+      {showHistory ? (
+        <HistoryPanel
+          currentConversationId={currentConversationId}
+          onSelect={handleSelectConversation}
+          onNew={handleNew}
         />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sendDisabled}
-          className={`${cc.sendBtn} ${sendDisabled ? cc.sendBtnDisabled : cc.sendBtnActive}`}
-        >
-          ↑
-        </button>
-      </div>
+      ) : (
+        <div className={cc.messages}>
+          {isLoadingHistory ? (
+            <div className={cc.historyLoadingRow}>
+              <span>Cargando conversación…</span>
+            </div>
+          ) : isEmpty ? (
+            <div className={cc.emptyWrap}>
+              <div className={cc.emptyHint}>{t("chatEmptyHint")}</div>
+              <div className={cc.suggestedCol}>
+                {suggestedQuestions.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    className={cc.suggestedBtn}
+                    onClick={() => {
+                      setInput(q);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg, i) => (
+                <MessageBubble key={i} msg={msg} />
+              ))}
+              <div ref={bottomRef} />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Input bar (hidden while history panel is open) ── */}
+      {!showHistory && (
+        <div className={cc.inputBar}>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t("chatPlaceholder")}
+            rows={1}
+            className={cc.textarea}
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sendDisabled}
+            className={`${cc.sendBtn} ${sendDisabled ? cc.sendBtnDisabled : cc.sendBtnActive}`}
+          >
+            ↑
+          </button>
+        </div>
+      )}
     </div>
   );
 }
