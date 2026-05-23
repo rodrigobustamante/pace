@@ -88,7 +88,7 @@ export function PlanPageClient({ goals, zoneRanges }: Props) {
       {/* ── Add milestone form (collapsible) ── */}
       {showForm && (
         <div className={s.formCollapseWrapper}>
-          <GoalForm />
+          <GoalForm onSuccess={() => setShowForm(false)} />
         </div>
       )}
 

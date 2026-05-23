@@ -30,7 +30,11 @@ const DEFAULT_TITLES: Record<GoalType, string> = {
   custom: "Objetivo personalizado",
 };
 
-export function GoalForm() {
+interface GoalFormProps {
+  onSuccess?: () => void;
+}
+
+export function GoalForm({ onSuccess }: GoalFormProps) {
   const router = useRouter();
   const t = useTranslations("goalForm");
   const tPlan = useTranslations("plan");
@@ -80,6 +84,7 @@ export function GoalForm() {
         return;
       }
       router.refresh();
+      onSuccess?.();
     } catch {
       setError(t("errorConnection"));
       setGenerating(false);
