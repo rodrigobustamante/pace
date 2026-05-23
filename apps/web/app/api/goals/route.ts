@@ -12,15 +12,18 @@ const GOAL_TYPE_LABELS: Record<GoalType, string> = {
   custom: "Objetivo personalizado",
 };
 
+const VALID_PRIORITIES = new Set(["A", "B", "C"]);
+
+/** GET /api/goals — returns all active milestones sorted by race date */
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const goal = await prisma.goal.findFirst({
+  const goals = await prisma.goal.findMany({
     where: { userId: user.id, isActive: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { targetDate: "asc" },
     include: {
       trainingPlan: {
         include: { days: { orderBy: { date: "asc" } } },
@@ -28,9 +31,10 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return Response.json({ goal });
+  return Response.json({ goals });
 }
 
+/** POST /api/goals — creates a new milestone without deactivating existing ones */
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) {
@@ -40,23 +44,36 @@ export async function POST(req: NextRequest) {
   let title: string;
   let goalType: GoalType;
   let targetDate: string;
+  let location: string | undefined;
+  let priority: string;
 
   try {
     const body = (await req.json()) as {
       title?: unknown;
       goalType?: unknown;
       targetDate?: unknown;
+      location?: unknown;
+      priority?: unknown;
     };
+
     if (
-      typeof body.title !== "string" ||
       typeof body.goalType !== "string" ||
       typeof body.targetDate !== "string"
     ) {
       throw new Error("invalid fields");
     }
-    title = body.title.trim();
+
+    title = typeof body.title === "string" ? body.title.trim() : "";
     goalType = body.goalType as GoalType;
     targetDate = body.targetDate;
+    location =
+      typeof body.location === "string" && body.location.trim()
+        ? body.location.trim()
+        : undefined;
+    priority =
+      typeof body.priority === "string" && VALID_PRIORITIES.has(body.priority)
+        ? body.priority
+        : "A";
   } catch {
     return Response.json({ error: "Campos inválidos" }, { status: 400 });
   }
@@ -72,26 +89,42 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Deactivate any existing active goals
-  await prisma.goal.updateMany({
-    where: { userId: user.id, isActive: true },
-    data: { isActive: false },
+  // Check for duplicate milestone on the same date
+  const existing = await prisma.goal.findFirst({
+    where: {
+      userId: user.id,
+      isActive: true,
+      targetDate: parsedDate,
+    },
   });
+  if (existing) {
+    return Response.json(
+      { error: "Ya tienes un hito registrado en esa fecha" },
+      { status: 409 },
+    );
+  }
 
-  // Create the goal
   const goal = await prisma.goal.create({
     data: {
       userId: user.id,
-      title: title || GOAL_TYPE_LABELS[goalType] || "Mi objetivo",
+      title: title || GOAL_TYPE_LABELS[goalType] || "Mi hito",
       goalType,
       targetDate: parsedDate,
       isActive: true,
+      location,
+      priority,
     },
   });
 
   const tz = req.headers.get("X-User-Timezone") ?? "UTC";
 
-  // Generate training plan with Gemini
+  // Fetch other active milestones to inform the plan generator
+  const otherGoals = await prisma.goal.findMany({
+    where: { userId: user.id, isActive: true, id: { not: goal.id } },
+    orderBy: { targetDate: "asc" },
+    select: { title: true, targetDate: true, location: true, priority: true },
+  });
+
   try {
     const plan = await generateAndPersistTrainingPlan({
       prisma,
@@ -99,13 +132,20 @@ export async function POST(req: NextRequest) {
       goalId: goal.id,
       goalTitle: goal.title,
       goalTargetDate: parsedDate,
+      goalLocation: location,
+      goalPriority: priority,
+      otherMilestones: otherGoals.map((g) => ({
+        title: g.title,
+        targetDate: g.targetDate.toISOString().split("T")[0]!,
+        location: g.location ?? undefined,
+        priority: g.priority,
+      })),
       replaceExisting: false,
       timezone: tz,
     });
 
     return Response.json({ goal, plan });
   } catch (err) {
-    // If plan generation fails, clean up and return error
     await prisma.goal.delete({ where: { id: goal.id } });
     const msg = err instanceof Error ? err.message : "Error desconocido";
     return Response.json(
