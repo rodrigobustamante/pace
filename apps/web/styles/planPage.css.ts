@@ -583,3 +583,197 @@ export const todayBadge = style({
   textTransform: "uppercase",
   letterSpacing: "0.06em",
 });
+
+// ── Milestone timeline ────────────────────────────────────────────────────────
+
+export const timelineWrapper = style({
+  marginBottom: 32,
+});
+
+export const timelineHeader = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 16,
+  flexWrap: "wrap",
+  gap: 8,
+});
+
+export const timelineTitle = style({
+  fontSize: 13,
+  fontWeight: 700,
+  color: vars.color.muted2,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontFamily: vars.font.dmMono,
+});
+
+export const addMilestoneBtn = style({
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  background: vars.color.orangeGlow,
+  border: `1px solid ${vars.color.orangeBorder}`,
+  borderRadius: 8,
+  color: vars.color.orange,
+  fontSize: 12,
+  fontWeight: 600,
+  padding: "6px 12px",
+  cursor: "pointer",
+  fontFamily: vars.font.dmSans,
+  transition: "all 0.15s",
+  ":hover": {
+    borderColor: vars.color.orangeBorderStrong,
+    background: "rgba(249,115,22,0.2)",
+  },
+});
+
+export const addMilestoneBtnCancel = style({
+  background: "rgba(255,255,255,0.04)",
+  border: `1px solid ${vars.color.borderStrong}`,
+  color: vars.color.muted,
+  ":hover": {
+    borderColor: vars.color.borderHover,
+    background: "rgba(255,255,255,0.06)",
+  },
+});
+
+export const timelineScroll = style({
+  display: "flex",
+  gap: 12,
+  overflowX: "auto",
+  paddingBottom: 4,
+  // Hide scrollbar visually but keep scrolling
+  scrollbarWidth: "none",
+  "::-webkit-scrollbar": {
+    display: "none",
+  },
+});
+
+export const milestoneCard = style({
+  flexShrink: 0,
+  width: 200,
+  background: vars.color.overlayLight,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: 14,
+  padding: "16px 16px 14px",
+  cursor: "pointer",
+  transition: "all 0.15s",
+  position: "relative",
+  ":hover": {
+    borderColor: vars.color.borderHover,
+    background: vars.color.overlayMed,
+  },
+});
+
+export const milestoneCardActive = style({
+  background: "rgba(249,115,22,0.08)",
+  border: `1px solid ${vars.color.orangeBorderStrong}`,
+});
+
+export const milestoneCardEmpty = style({
+  flexShrink: 0,
+  width: 180,
+  background: "rgba(255,255,255,0.015)",
+  border: `1px dashed ${vars.color.borderStrong}`,
+  borderRadius: 14,
+  padding: "20px 16px",
+  cursor: "default",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  textAlign: "center",
+});
+
+export const milestoneCardEmptyText = style({
+  fontSize: 12,
+  color: vars.color.muted,
+  lineHeight: 1.5,
+});
+
+export const milestonePriorityBadge = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 10,
+  fontWeight: 700,
+  borderRadius: 5,
+  padding: "1px 6px",
+  fontFamily: vars.font.dmMono,
+  letterSpacing: "0.05em",
+  marginBottom: 10,
+});
+
+export const milestoneIcon = style({
+  fontSize: 22,
+  marginBottom: 8,
+  display: "block",
+});
+
+export const milestoneCardTitle = style({
+  fontSize: 13,
+  fontWeight: 700,
+  color: vars.color.foreground,
+  marginBottom: 4,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontFamily: vars.font.dmSans,
+});
+
+export const milestoneCardLocation = style({
+  fontSize: 11,
+  color: vars.color.muted,
+  marginBottom: 6,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+export const milestoneCardDate = style({
+  fontSize: 12,
+  fontWeight: 600,
+  color: vars.color.textSlate,
+  fontFamily: vars.font.dmMono,
+  marginBottom: 2,
+});
+
+export const milestoneCardDays = style({
+  fontSize: 11,
+  color: vars.color.muted,
+});
+
+export const milestoneDeleteBtn = style({
+  position: "absolute",
+  top: 10,
+  right: 10,
+  background: "transparent",
+  border: "none",
+  color: vars.color.muted,
+  fontSize: 14,
+  cursor: "pointer",
+  padding: "2px 4px",
+  borderRadius: 4,
+  lineHeight: 1,
+  transition: "color 0.15s",
+  ":hover": {
+    color: vars.color.red,
+  },
+});
+
+export const timelineEmpty = style({
+  padding: "24px 20px",
+  background: vars.color.overlayLight,
+  border: `1px dashed ${vars.color.borderStrong}`,
+  borderRadius: 14,
+  textAlign: "center",
+  color: vars.color.muted,
+  fontSize: 13,
+});
+
+export const formCollapseWrapper = style({
+  marginTop: 24,
+  marginBottom: 8,
+});

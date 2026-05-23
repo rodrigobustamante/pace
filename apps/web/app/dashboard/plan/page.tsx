@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { GoalForm } from "@/components/GoalForm";
-import { TrainingPlanView } from "@/components/TrainingPlanView";
+import { PlanPageClient, type SerializedGoal } from "@/components/PlanPageClient";
 import { getTranslations } from "next-intl/server";
 import * as s from "@/styles/planPage.css";
 
@@ -24,9 +23,9 @@ export default async function PlanPage() {
       ]
     : null;
 
-  const goal = await prisma.goal.findFirst({
+  const goals = await prisma.goal.findMany({
     where: { userId: user.id, isActive: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { targetDate: "asc" },
     include: {
       trainingPlan: {
         include: { days: { orderBy: { date: "asc" } } },
@@ -34,25 +33,36 @@ export default async function PlanPage() {
     },
   });
 
-  const serialized = goal
-    ? {
-        ...goal,
-        targetDate: goal.targetDate.toISOString(),
-        createdAt: goal.createdAt.toISOString(),
-        updatedAt: goal.updatedAt.toISOString(),
-        trainingPlan: goal.trainingPlan
-          ? {
-              ...goal.trainingPlan,
-              generatedAt: goal.trainingPlan.generatedAt.toISOString(),
-              days: goal.trainingPlan.days.map((d) => ({
-                ...d,
-                date: d.date.toISOString(),
-                createdAt: d.createdAt.toISOString(),
-              })),
-            }
-          : null,
-      }
-    : null;
+  const serializedGoals: SerializedGoal[] = goals.map((goal) => ({
+    id: goal.id,
+    title: goal.title,
+    goalType: goal.goalType,
+    targetDate: goal.targetDate.toISOString(),
+    location: goal.location ?? null,
+    priority: goal.priority,
+    trainingPlan: goal.trainingPlan
+      ? {
+          id: goal.trainingPlan.id,
+          generatedAt: goal.trainingPlan.generatedAt.toISOString(),
+          days: goal.trainingPlan.days.map((d) => ({
+            id: d.id,
+            date: d.date.toISOString(),
+            title: d.title,
+            description: d.description,
+            workoutType: d.workoutType,
+            durationMin: d.durationMin,
+            targetPace: d.targetPace ?? null,
+            targetZone: d.targetZone ?? null,
+            willTrain: d.willTrain ?? null,
+          })),
+        }
+      : null,
+  }));
+
+  const totalDays = serializedGoals.reduce(
+    (sum, g) => sum + (g.trainingPlan?.days.length ?? 0),
+    0,
+  );
 
   return (
     <div>
@@ -61,17 +71,13 @@ export default async function PlanPage() {
           {t("title")} <span className={s.accentOrange}>{t("titleAccent")}</span>
         </div>
         <div className={s.pageSub}>
-          {serialized
-            ? t("subtitle", { days: serialized.trainingPlan?.days.length ?? 0 })
+          {serializedGoals.length > 0
+            ? t("subtitle", { days: totalDays })
             : t("subtitleEmpty")}
         </div>
       </div>
 
-      {!serialized ? (
-        <GoalForm />
-      ) : (
-        <TrainingPlanView goal={serialized} zoneRanges={zoneRanges} />
-      )}
+      <PlanPageClient goals={serializedGoals} zoneRanges={zoneRanges} />
     </div>
   );
 }
