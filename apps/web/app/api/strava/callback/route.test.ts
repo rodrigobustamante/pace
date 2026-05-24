@@ -6,6 +6,8 @@ const encrypt = vi.fn((s: string) => `enc:${s}`);
 const exchangeAuthorizationCode = vi.fn();
 const waitUntil = vi.fn((p: Promise<unknown>) => p);
 const syncActivities = vi.fn();
+const redisSetex = vi.fn();
+const redisDel = vi.fn();
 
 const prismaUserUpsert = vi.fn();
 
@@ -27,6 +29,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/redis", () => ({
+  redis: { setex: redisSetex, del: redisDel },
+}));
+
 vi.mock("@/services/strava/sync", () => ({
   syncActivities,
 }));
@@ -42,6 +48,7 @@ describe("GET /api/strava/callback", () => {
     getAppBaseUrl.mockReturnValue("https://app.example.com");
     prismaUserUpsert.mockResolvedValue({ id: "user-1" });
     syncActivities.mockResolvedValue(undefined);
+    redisSetex.mockResolvedValue("OK");
   });
 
   it("redirects to auth error when Strava returns error", async () => {
@@ -111,9 +118,11 @@ describe("GET /api/strava/callback", () => {
     expect(setCookie).toContain("pace_user_id=user-1");
     expect(prismaUserUpsert).toHaveBeenCalled();
     expect(waitUntil).toHaveBeenCalled();
+    // Web flow must NOT write to Redis
+    expect(redisSetex).not.toHaveBeenCalled();
   });
 
-  it("redirects to mobile deep link when platform and redirect are set", async () => {
+  it("generates sessionCode and redirects to mobile deep link", async () => {
     exchangeAuthorizationCode.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -130,7 +139,7 @@ describe("GET /api/strava/callback", () => {
     });
 
     const { GET } = await import("./route");
-    const mobileRedirect = encodeURIComponent("myapp://oauth-done");
+    const mobileRedirect = encodeURIComponent("pace://auth/callback");
     const req = new NextRequest(
       `http://localhost/api/strava/callback?code=good&platform=mobile&redirect=${mobileRedirect}`,
     );
@@ -138,8 +147,16 @@ describe("GET /api/strava/callback", () => {
 
     expect(res.status).toBe(307);
     const loc = res.headers.get("Location") ?? "";
-    expect(loc).toContain("myapp://oauth-done");
-    expect(loc).toContain("userId=user-1");
+    expect(loc).toContain("pace://auth/callback");
+    expect(loc).toContain("sessionCode=");
+    // Must NOT expose raw userId
+    expect(loc).not.toContain("userId=");
+    // Must have stored the code in Redis with 5-min TTL
+    expect(redisSetex).toHaveBeenCalledWith(
+      expect.stringContaining("mobile:session:"),
+      300,
+      "user-1",
+    );
   });
 
   it("redirects to internal_error when upsert throws", async () => {

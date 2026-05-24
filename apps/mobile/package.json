@@ -1,0 +1,42 @@
+{
+  "name": "mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start",
+    "ios": "expo run:ios",
+    "build:ios": "eas build --platform ios",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pace/types": "workspace:*",
+    "@pace/utils": "workspace:*",
+    "@tanstack/react-query": "^5.62.0",
+    "expo": "~55.0.26",
+    "expo-auth-session": "~55.0.16",
+    "expo-constants": "~55.0.16",
+    "expo-device": "~55.0.17",
+    "expo-linear-gradient": "^56.0.4",
+    "expo-linking": "~7.1.5",
+    "expo-notifications": "~0.30.0",
+    "expo-router": "~55.0.12",
+    "expo-secure-store": "~14.2.3",
+    "expo-splash-screen": "~0.30.8",
+    "expo-status-bar": "~2.2.3",
+    "expo-web-browser": "~55.0.16",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-gifted-charts": "^1.4.32",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "react-native-svg": "~15.15.3",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@types/react": "~19.2.0",
+    "typescript": "^5.6.3"
+  }
+}

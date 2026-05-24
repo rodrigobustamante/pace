@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { waitUntil } from "@vercel/functions";
 import { getAppBaseUrl } from "@/lib/appBaseUrl";
 import { prisma } from "@/lib/db";
+import { redis } from "@/lib/redis";
 import { encrypt } from "@/lib/crypto";
 import { exchangeAuthorizationCode } from "@/lib/strava/tokenRequest";
 import { syncActivities } from "@/services/strava/sync";
@@ -64,12 +66,14 @@ export async function GET(req: NextRequest) {
     // Keep the function alive until sync completes
     waitUntil(syncActivities(user.id).catch(console.error));
 
-    // Mobile: redirect to deep link with userId so the app can store it
+    // Mobile: one-time sessionCode → deep link (never expose raw userId)
     const platform = req.nextUrl.searchParams.get("platform");
     const mobileRedirect = req.nextUrl.searchParams.get("redirect");
     if (platform === "mobile" && mobileRedirect) {
+      const sessionCode = randomUUID();
+      await redis.setex(`mobile:session:${sessionCode}`, 300, user.id); // 5 min TTL
       const deepLink = new URL(decodeURIComponent(mobileRedirect));
-      deepLink.searchParams.set("userId", user.id);
+      deepLink.searchParams.set("sessionCode", sessionCode);
       return NextResponse.redirect(deepLink.toString());
     }
 
