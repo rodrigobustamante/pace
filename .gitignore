@@ -34,3 +34,4 @@ packages/db/node_modules/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+.vercel

@@ -5,10 +5,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
+import { router } from "expo-router";
 import { API_BASE_URL, COLORS } from "@/lib/constants";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -23,11 +23,22 @@ export default function AuthScreen() {
     try {
       const redirectUri = encodeURIComponent("pace://auth/callback");
       const url = `${API_BASE_URL}/api/strava/auth?platform=mobile&redirect=${redirectUri}`;
+
+      // openAuthSessionAsync intercepts any URL starting with "pace://" and
+      // returns it as result.url instead of triggering the deep link handler.
       const result = await WebBrowser.openAuthSessionAsync(url, "pace://");
 
-      if (result.type !== "success") {
-        // User cancelled — not an error
+      if (result.type === "success" && result.url) {
+        // Parse the sessionCode from pace://auth/callback?sessionCode=xxx
+        const parsed = new URL(result.url);
+        const sessionCode = parsed.searchParams.get("sessionCode");
+        if (sessionCode) {
+          router.replace(`/auth/callback?sessionCode=${sessionCode}`);
+        } else {
+          setError("No se recibió el código de sesión.");
+        }
       }
+      // result.type === "cancel" → user dismissed browser, no error needed
     } catch {
       setError("No se pudo conectar con Strava. Intenta de nuevo.");
     } finally {

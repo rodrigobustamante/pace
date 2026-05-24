@@ -66,9 +66,22 @@ export async function GET(req: NextRequest) {
     // Keep the function alive until sync completes
     waitUntil(syncActivities(user.id).catch(console.error));
 
-    // Mobile: one-time sessionCode → deep link (never expose raw userId)
-    const platform = req.nextUrl.searchParams.get("platform");
-    const mobileRedirect = req.nextUrl.searchParams.get("redirect");
+    // Mobile: recover platform + redirect from OAuth `state` param (Strava strips
+    // extra query params from redirect_uri, so we encode them in state instead).
+    let platform: string | null = null;
+    let mobileRedirect: string | null = null;
+    const stateParam = req.nextUrl.searchParams.get("state");
+    if (stateParam) {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(stateParam, "base64").toString("utf-8")
+        ) as { platform?: string; redirect?: string };
+        platform = decoded.platform ?? null;
+        mobileRedirect = decoded.redirect ?? null;
+      } catch {
+        // state is not a mobile payload — ignore
+      }
+    }
     if (platform === "mobile" && mobileRedirect) {
       const sessionCode = randomUUID();
       await redis.setex(`mobile:session:${sessionCode}`, 300, user.id); // 5 min TTL
