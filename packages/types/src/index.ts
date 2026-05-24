@@ -31,6 +31,7 @@ export interface User {
   maxHR: number | null;
   restingHR: number | null;
   tokenExpiresAt: Date;
+  expoPushToken: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getCurrentUser = vi.fn();
+const getUserFromRequest = vi.fn();
 const activityFindMany = vi.fn();
 const activityCount = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
-  getCurrentUser,
+  getUserFromRequest,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -25,14 +25,14 @@ describe("GET /api/activities", () => {
   });
 
   it("returns 401 without user", async () => {
-    getCurrentUser.mockResolvedValue(null);
+    getUserFromRequest.mockResolvedValue(null);
     const { GET } = await import("./route");
     const res = await GET(new NextRequest("http://localhost/api/activities"));
     expect(res.status).toBe(401);
   });
 
   it("returns 400 for invalid query params", async () => {
-    getCurrentUser.mockResolvedValue({ id: "u1" });
+    getUserFromRequest.mockResolvedValue({ id: "u1" });
     const { GET } = await import("./route");
     const res = await GET(
       new NextRequest("http://localhost/api/activities?page=0&limit=200"),
@@ -41,7 +41,7 @@ describe("GET /api/activities", () => {
   });
 
   it("returns paginated activities", async () => {
-    getCurrentUser.mockResolvedValue({ id: "u1" });
+    getUserFromRequest.mockResolvedValue({ id: "u1" });
     activityFindMany.mockResolvedValue([{ id: "a1", name: "Easy" }]);
     activityCount.mockResolvedValue(25);
 

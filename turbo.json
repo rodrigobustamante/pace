@@ -24,6 +24,10 @@
     "test:coverage": {
       "dependsOn": ["^test:coverage"],
       "outputs": ["coverage/**"]
+    },
+    "build:ios": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

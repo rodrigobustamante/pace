@@ -1,0 +1,219 @@
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
+require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
+
+require 'json'
+podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
+
+def ccache_enabled?(podfile_properties)
+  # Environment variable takes precedence
+  return ENV['USE_CCACHE'] == '1' if ENV['USE_CCACHE']
+
+  # Fall back to Podfile properties
+  podfile_properties['apple.ccacheEnabled'] == 'true'
+end
+
+ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
+ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_HERMES_V1_ENABLED'] ||= '1' if podfile_properties['expo.useHermesV1'] == 'true'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+
+prepare_react_native_project!
+
+target 'PACE' do
+  use_expo_modules!
+
+  if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+  else
+    config_command = [
+      'node',
+      '--no-warnings',
+      '--eval',
+      'require(\'expo/bin/autolinking\')',
+      'expo-modules-autolinking',
+      'react-native-config',
+      '--json',
+      '--platform',
+      'ios'
+    ]
+  end
+
+  config = use_native_modules!(config_command)
+
+  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
+  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
+  )
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      :ccache_enabled => ccache_enabled?(podfile_properties),
+    )
+
+    # Fix: Expo SDK 55 podspecs set swift_version='6.0' but use SE-0434 syntax
+    # (extension Type: @MainActor Protocol) that is not yet valid in Swift 6.1.
+    # Override all Expo/EX pod targets to Swift 5 + minimal strict concurrency so
+    # actor-isolation violations become warnings instead of errors.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+        if target.name.start_with?('Expo') || target.name.start_with?('EX')
+          config.build_settings['SWIFT_VERSION'] = '5'
+        end
+      end
+    end
+
+    # Fix: expo-modules-core@55.0.25 uses SE-0434 syntax not yet supported by the
+    # released Swift 6.1 compiler. Remove @MainActor from protocol conformances so
+    # the code compiles under Swift 5 mode.
+    expo_modules_core_root = "#{installer.sandbox.root}/../../../../node_modules/.pnpm"
+    Dir.glob("#{expo_modules_core_root}/expo-modules-core@*/node_modules/expo-modules-core/ios").each do |emc_path|
+      # 1. ViewDefinition.swift
+      vd = "#{emc_path}/Core/Views/ViewDefinition.swift"
+      if File.exist?(vd)
+        content = File.read(vd)
+        if content.include?('extension UIView: @MainActor AnyArgument')
+          File.chmod(0644, vd)
+          File.write(vd, content.gsub(
+            'extension UIView: @MainActor AnyArgument',
+            'extension UIView: AnyArgument'
+          ))
+          puts "[PACE] Patched ViewDefinition.swift: removed @MainActor from UIView conformance"
+        end
+      end
+
+      # 2. SwiftUIHostingView.swift
+      shv = "#{emc_path}/Core/Views/SwiftUI/SwiftUIHostingView.swift"
+      if File.exist?(shv)
+        content = File.read(shv)
+        if content.include?('@MainActor AnyExpoSwiftUIHostingView')
+          File.chmod(0644, shv)
+          File.write(shv, content.gsub(
+            '@MainActor AnyExpoSwiftUIHostingView',
+            'AnyExpoSwiftUIHostingView'
+          ))
+          puts "[PACE] Patched SwiftUIHostingView.swift: removed @MainActor from class conformance"
+        end
+      end
+
+      # 3. SwiftUIVirtualView.swift
+      svv = "#{emc_path}/Core/Views/SwiftUI/SwiftUIVirtualView.swift"
+      if File.exist?(svv)
+        content = File.read(svv)
+        if content.include?(': @MainActor ExpoSwiftUI.ViewWrapper')
+          File.chmod(0644, svv)
+          File.write(svv, content.gsub(
+            ': @MainActor ExpoSwiftUI.ViewWrapper',
+            ': ExpoSwiftUI.ViewWrapper'
+          ))
+          puts "[PACE] Patched SwiftUIVirtualView.swift: removed @MainActor from ViewWrapper conformance"
+        end
+      end
+    end
+
+    # Fix: expo-router@55.0.12 LinkPreview and Toolbar modules use iOS 26 UIKit APIs
+    # (ImageRenderingMode, hidesSharedBackground, searchBarPlacementBarButtonItem, etc.)
+    # inside @available(iOS 26.0, *) blocks. Xcode 16 / iOS 18 SDK still type-checks those
+    # bodies and fails. Remove these modules from expo-module.config.json so the Expo
+    # autolinking script doesn't register them in ExpoModulesProvider.swift.
+    Dir.glob("#{installer.sandbox.root}/../../../../node_modules/.pnpm/expo-router@*/node_modules/expo-router/expo-module.config.json").each do |cfg_path|
+      real = File.realpath(cfg_path) rescue cfg_path
+      content = File.read(real)
+      if content.include?('LinkPreviewNativeModule') || content.include?('RouterToolbarModule')
+        require 'json'
+        cfg = JSON.parse(content)
+        excluded = %w[LinkPreviewNativeModule RouterToolbarModule]
+        apple = cfg['apple'] || {}
+        apple['modules'] = (apple['modules'] || []).reject { |m| excluded.include?(m) }
+        cfg['apple'] = apple
+        File.write(real, JSON.pretty_generate(cfg))
+        puts "[PACE] Patched expo-router expo-module.config.json: removed iOS-26 modules"
+      end
+    end
+
+    # Fix: expo-router@55.0.12 Toolbar Swift files reference iOS 26 UIKit APIs
+    # (hidesSharedBackground, searchBarPlacementBarButtonItem, etc.) inside
+    # @available(iOS 26.0, *) blocks. Xcode 16 (iOS 18 SDK) still type-checks these
+    # bodies and fails because the types don't exist in the SDK. Exclude them from
+    # compilation — the Toolbar navigation bar customization feature simply won't be
+    # available; all routing/navigation still works.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'ExpoRouter'
+      target.build_configurations.each do |config|
+        config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = [
+          # Toolbar feature — uses iOS 26 UIKit APIs (hidesSharedBackground, etc.)
+          'RouterToolbarHostView.swift',
+          'RouterToolbarItemView.swift',
+          'RouterToolbarModule.swift',
+          'RouterFontUtils.swift',
+          # LinkPreview feature — uses iOS 26 APIs (ImageRenderingMode, etc.)
+          # Exclude all files in the LinkPreview directory
+          'LinkPreviewNativeActionView.swift',
+          'LinkPreviewNativeModule.swift',
+          'LinkPreviewNativeView.swift',
+          'LinkPreviewNativeNavigation.swift',
+          'LinkPreviewNativePreviewView.swift',
+          'LinkZoomTransition.swift',
+          'RNScreensTabCompat.swift',
+        ].join(' ')
+      end
+      puts "[PACE] ExpoRouter: excluded iOS-26 Toolbar/LinkPreview source files from compilation"
+    end
+
+    # Fix: ExpoModulesProvider.swift is auto-generated and registers the excluded modules.
+    # Remove those registrations so the linker doesn't look for non-compiled symbols.
+    modules_provider = "#{installer.sandbox.root}/Target Support Files/Pods-PACE/ExpoModulesProvider.swift"
+    if File.exist?(modules_provider)
+      content = File.read(modules_provider)
+      patched = content
+        .gsub(/\s*\(module: LinkPreviewNativeModule\.self, name: nil\),?\n/, "\n")
+        .gsub(/\s*\(module: RouterToolbarModule\.self, name: nil\),?\n/, "\n")
+      if patched != content
+        File.write(modules_provider, patched)
+        puts "[PACE] Patched ExpoModulesProvider.swift: removed excluded module registrations"
+      end
+    end
+
+    # Fix: expo-notifications@0.30.7 references EXSharedApplication() which is not
+    # exported by expo-modules-core@55.0.25. Replace with UIApplication.shared
+    # (safe at both call sites — both run on the main thread).
+    Dir.glob("#{installer.sandbox.root}/../../../../node_modules/.pnpm/expo-notifications@*/node_modules/expo-notifications/ios/EXNotifications/Badge/BadgeModule.swift").each do |bm|
+      real = File.realpath(bm) rescue bm
+      content = File.read(real)
+      if content.include?('EXSharedApplication()')
+        File.chmod(0644, real)
+        File.write(real, content.gsub('EXSharedApplication()', 'UIApplication.shared'))
+        puts "[PACE] Patched BadgeModule.swift: EXSharedApplication() → UIApplication.shared"
+      end
+    end
+
+    # Fix: expo-image@55.0.8 applySymbolEffectiOS26 uses DrawOnSymbolEffect /
+    # DrawOffSymbolEffect which are iOS 26 SDK APIs. With Xcode 16 (iOS 18 SDK)
+    # Swift still type-checks the @available(iOS 26.0, *) body and fails.
+    # Stub the function; SF Symbol draw effects won't animate until rebuilt with Xcode 26.
+    Dir.glob("#{installer.sandbox.root}/../../../../node_modules/.pnpm/expo-image@*/node_modules/expo-image/ios/ImageView.swift").each do |iv_path|
+      real = File.realpath(iv_path) rescue iv_path
+      content = File.read(real)
+      next if content.include?('PACE_PATCH')
+      # Match the entire iOS-26-only function body which uses unavailable SDK types
+      patched = content.gsub(
+        /(@available\(iOS 26\.0.*?\*\)\s*\n\s*private func applySymbolEffectiOS26[^\{]+\{).*?(\n\s*\})\s*\n(\s*func startSymbolAnimation)/m
+      ) { "#{$1}\n    // PACE_PATCH: DrawOn/DrawOff APIs require iOS 26 SDK – stubbed for Xcode 16\n  #{$2}\n#{$3}" }
+      if patched != content
+        File.chmod(0644, real)
+        File.write(real, patched)
+        puts "[PACE] Patched ImageView.swift: stubbed applySymbolEffectiOS26 for Xcode 16"
+      end
+    end
+  end
+end

@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "PACE",
+    "slug": "pace",
+    "scheme": "pace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#060d1a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rodbustamante.pace"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#060d1a"
+      },
+      "package": "com.pace.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#f97316"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#060d1a",
+          "image": "./assets/splash.png",
+          "imageWidth": 200
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "113eb9d4-d980-49a0-981f-7f1a903facc7"
+      },
+      "router": {}
+    },
+    "owner": "rodrigobustamante"
+  }
+}

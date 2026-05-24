@@ -24,6 +24,7 @@ model User {
   refreshToken      String
   tokenExpiresAt    DateTime
   preferredModel    String        @default("gemini-2.5-flash")
+  expoPushToken     String?
   activities        Activity[]
   coachInsights     CoachInsight[]
   coachChats        CoachChat[]
