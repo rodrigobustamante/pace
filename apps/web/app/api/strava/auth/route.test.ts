@@ -37,7 +37,7 @@ describe("GET /api/strava/auth", () => {
     );
   });
 
-  it("forwards platform and redirect query params to callback URL", async () => {
+  it("encodes platform and redirect in the OAuth state param (not redirect_uri)", async () => {
     const { GET } = await import("./route");
     const req = new NextRequest(
       "http://localhost/api/strava/auth?platform=mobile&redirect=myapp%3A%2F%2Fcb",
@@ -45,9 +45,21 @@ describe("GET /api/strava/auth", () => {
 
     await expect(GET(req)).rejects.toThrow("REDIRECT:");
     const url = redirect.mock.calls[0]?.[0] as string;
-    const redirectUri = new URL(url).searchParams.get("redirect_uri") ?? "";
-    const decoded = decodeURIComponent(redirectUri);
-    expect(decoded).toContain("platform=mobile");
-    expect(decoded).toContain("redirect=myapp://cb");
+    const parsed = new URL(url);
+
+    // redirect_uri must be the clean callback URL — no extra query params
+    const redirectUri = parsed.searchParams.get("redirect_uri") ?? "";
+    expect(redirectUri).toBe("https://app.example.com/api/strava/callback");
+    expect(redirectUri).not.toContain("platform");
+    expect(redirectUri).not.toContain("redirect");
+
+    // platform + redirect must be encoded in the state param as base64 JSON
+    const state = parsed.searchParams.get("state") ?? "";
+    const decoded = JSON.parse(Buffer.from(state, "base64").toString("utf-8")) as {
+      platform?: string;
+      redirect?: string;
+    };
+    expect(decoded.platform).toBe("mobile");
+    expect(decoded.redirect).toBe("myapp://cb");
   });
 });

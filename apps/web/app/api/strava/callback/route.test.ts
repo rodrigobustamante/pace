@@ -139,9 +139,12 @@ describe("GET /api/strava/callback", () => {
     });
 
     const { GET } = await import("./route");
-    const mobileRedirect = encodeURIComponent("pace://auth/callback");
+    // platform + redirect are encoded in the OAuth state param (base64 JSON)
+    const state = Buffer.from(
+      JSON.stringify({ platform: "mobile", redirect: "pace://auth/callback" }),
+    ).toString("base64");
     const req = new NextRequest(
-      `http://localhost/api/strava/callback?code=good&platform=mobile&redirect=${mobileRedirect}`,
+      `http://localhost/api/strava/callback?code=good&state=${encodeURIComponent(state)}`,
     );
     const res = await GET(req);
 
