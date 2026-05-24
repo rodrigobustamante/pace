@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   calculateFitness,
@@ -9,8 +9,8 @@ import {
   secToPace,
 } from "@pace/utils";
 
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

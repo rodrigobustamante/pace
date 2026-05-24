@@ -1,5 +1,6 @@
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "https://pace-web.vercel.app";
+export const API_BASE_URL = (
+  process.env.EXPO_PUBLIC_API_URL ?? "https://pace-web-nine.vercel.app"
+).replace(/\/$/, "");
 
 export const DEEP_LINK_SCHEME = "pace";
 

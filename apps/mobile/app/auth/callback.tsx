@@ -16,16 +16,28 @@ export default function AuthCallbackScreen() {
     }
 
     async function exchangeCode() {
+      const url = `${API_BASE_URL}/api/auth/mobile/session`;
+      console.log("[callback] exchangeCode start", { url, sessionCode: sessionCode?.slice(0, 8) });
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/mobile/session`, {
+        const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionCode }),
         });
 
+        console.log("[callback] response", { status: res.status, ok: res.ok, url: res.url });
+
         if (!res.ok) {
-          const body = (await res.json()) as { error?: string };
-          throw new Error(body.error ?? `Error ${res.status}`);
+          const text = await res.text();
+          console.error("[callback] non-ok response body:", text);
+          let errorMsg: string;
+          try {
+            const body = JSON.parse(text) as { error?: string };
+            errorMsg = body.error ?? `Error ${res.status}`;
+          } catch {
+            errorMsg = text || `Error ${res.status}`;
+          }
+          throw new Error(errorMsg);
         }
 
         const data = (await res.json()) as {
@@ -34,10 +46,13 @@ export default function AuthCallbackScreen() {
           userId: string;
         };
 
+        console.log("[callback] tokens received, storing...", { userId: data.userId });
         await setTokens(data.userId, data.accessToken, data.refreshToken);
+        console.log("[callback] tokens stored, navigating to tabs");
         router.replace("/(tabs)/");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Error desconocido";
+        console.error("[callback] exchangeCode error:", msg);
         setError(msg);
       }
     }

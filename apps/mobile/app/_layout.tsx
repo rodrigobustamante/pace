@@ -42,11 +42,16 @@ async function registerPushToken() {
     Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
   if (!projectId) return;
 
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
-  await apiFetch("/api/user/push-token", {
-    method: "POST",
-    body: JSON.stringify({ token: token.data }),
-  });
+  try {
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    await apiFetch("/api/user/push-token", {
+      method: "POST",
+      body: JSON.stringify({ token: token.data }),
+    });
+  } catch {
+    // Push tokens require APNs entitlement (paid Apple Developer account).
+    // Silently skip when running with a Personal Team certificate.
+  }
 }
 
 export default function RootLayout() {
@@ -72,14 +77,17 @@ export default function RootLayout() {
   }, [hydrate, markHydrated]);
 
   useEffect(() => {
+    console.log("[layout] auth effect", { isHydrated, isAuthenticated });
     if (!isHydrated) return;
 
     SplashScreen.hideAsync();
 
     if (isAuthenticated) {
+      console.log("[layout] → navigating to (tabs)");
       router.replace("/(tabs)/");
       void registerPushToken();
     } else {
+      console.log("[layout] → navigating to /auth");
       router.replace("/auth");
     }
   }, [isHydrated, isAuthenticated]);
