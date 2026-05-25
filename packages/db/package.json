@@ -10,7 +10,7 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:deploy": "PRISMA_HIDE_UPDATE_MESSAGE=1 prisma migrate deploy",
     "db:push": "prisma db push",
     "type-check": "tsc --noEmit"
   },
