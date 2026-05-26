@@ -5,6 +5,7 @@ import { GoalForm } from "./GoalForm";
 import { TrainingPlanView } from "./TrainingPlanView";
 import { MilestoneTimeline, type MilestoneCardData } from "./MilestoneTimeline";
 import { MissedDaysBanner } from "./MissedDaysBanner";
+import { sortMilestones } from "@/lib/milestones";
 import type { RunType } from "@pace/types";
 import * as s from "@/styles/planPage.css";
 
@@ -42,10 +43,12 @@ interface Props {
 }
 
 export function PlanPageClient({ goals, zoneRanges }: Props) {
-  // Default: select the nearest upcoming goal that has a plan
+  // Default: select the nearest upcoming goal that has a plan.
+  // Sort by display order (upcoming nearest-first, past last) before picking.
+  const sortedGoals = sortMilestones(goals);
   const defaultGoal =
-    goals.find((g) => g.trainingPlan !== null) ??
-    goals[0] ??
+    sortedGoals.find((g) => g.trainingPlan !== null) ??
+    sortedGoals[0] ??
     null;
 
   const [selectedId, setSelectedId] = useState<string | null>(defaultGoal?.id ?? null);
