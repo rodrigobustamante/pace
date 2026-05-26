@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as s from "@/styles/planPage.css";
+import { daysUntilMilestone, sortMilestones } from "@/lib/milestones";
 
 type GoalType = "race_5k" | "race_10k" | "half_marathon" | "marathon" | "custom";
 
@@ -39,14 +40,6 @@ interface Props {
   milestones: MilestoneCardData[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-}
-
-function daysUntil(isoDate: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(isoDate);
-  target.setHours(0, 0, 0, 0);
-  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function formatDate(isoDate: string): string {
@@ -94,13 +87,16 @@ export function MilestoneTimeline({ milestones, selectedId, onSelect }: Props) {
     );
   }
 
+  // Upcoming (today or future) sorted nearest-first; past sorted most-recent-first (oldest last)
+  const sorted = sortMilestones(milestones);
+
   return (
     <div className={s.timelineScroll}>
-      {milestones.map((m) => {
+      {sorted.map((m) => {
         const isActive = m.id === selectedId;
         const isDel = deleting === m.id;
         const isConfirm = confirmId === m.id;
-        const days = daysUntil(m.targetDate);
+        const days = daysUntilMilestone(m.targetDate);
         const pCfg = PRIORITY_COLORS[m.priority] ?? PRIORITY_COLORS.A!;
         const icon = GOAL_ICONS[(m.goalType as GoalType)] ?? "🎯";
 
