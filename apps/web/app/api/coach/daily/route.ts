@@ -10,6 +10,7 @@ import {
 } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 import { cookies } from "next/headers";
+import { parseModelJSON } from "@/lib/parseModelJSON";
 
 
 
@@ -105,7 +106,7 @@ If a planned workout exists for today, it is the default — deviate from it onl
       messages: [{ role: "user", content: prompt }],
       temperature: 0.35,
     });
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = parseModelJSON<Record<string, unknown>>(raw);
 
     // Cache until end of the user's local day
     const ttl = secsUntilLocalMidnight(tz);
