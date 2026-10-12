@@ -438,7 +438,12 @@ export async function buildDailyContext(userId: string, tz = "UTC"): Promise<Dai
     dailyTSSMap.set(dateKey, (dailyTSSMap.get(dateKey) ?? 0) + (tss ?? 0));
   }
   const dailyLoads = Array.from(dailyTSSMap.entries()).map(([date, tss]) => ({ date, tss }));
-  const fitness = calculateFitness(dailyLoads);
+  const fitness = calculateFitness(
+    dailyLoads,
+    0,
+    0,
+    new Date().toISOString().split("T")[0], // decay through today
+  );
   const latest = fitness[fitness.length - 1];
   const prev = fitness[fitness.length - 2];
 
@@ -632,7 +637,12 @@ export async function buildWeeklyContext(userId: string, tz = "UTC"): Promise<We
     tss,
   }));
 
-  const fitness = calculateFitness(dailyLoads);
+  const fitness = calculateFitness(
+    dailyLoads,
+    0,
+    0,
+    new Date().toISOString().split("T")[0], // decay through today
+  );
   const latest = fitness[fitness.length - 1];
   const prev = fitness[fitness.length - 2];
 

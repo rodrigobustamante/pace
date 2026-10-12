@@ -23,6 +23,36 @@ describe("fitness utils", () => {
     expect(points[2]).toMatchObject({ ctl: 3.2, atl: 17.2, tsb: -14.1 });
   });
 
+  it("counts days without activity as zero load", () => {
+    const points = calculateFitness([
+      { date: "2026-01-01", tss: 100 },
+      { date: "2026-01-04", tss: 100 },
+    ]);
+
+    expect(points.map((p) => p.date)).toEqual([
+      "2026-01-01",
+      "2026-01-02",
+      "2026-01-03",
+      "2026-01-04",
+    ]);
+    // Fatigue decays through the two rest days before the second run.
+    expect(points[1]!.atl).toBeLessThan(points[0]!.atl);
+    expect(points[2]!.atl).toBeLessThan(points[1]!.atl);
+  });
+
+  it("keeps decaying up to the given end date", () => {
+    const points = calculateFitness([{ date: "2026-01-01", tss: 70 }], 0, 0, "2026-01-08");
+
+    expect(points).toHaveLength(8);
+    expect(points[7]!.date).toBe("2026-01-08");
+    expect(points[7]!.atl).toBeLessThan(points[0]!.atl);
+    expect(points[7]!.tsb).toBeGreaterThan(points[0]!.tsb);
+  });
+
+  it("returns no points without loads", () => {
+    expect(calculateFitness([], 0, 0, "2026-01-08")).toEqual([]);
+  });
+
   it("calculates run TSS and threshold HR", () => {
     expect(calculateRunTSS(3600, 160, 170)).toBe(88.6);
     expect(estimateThresholdHR(190)).toBe(169);
