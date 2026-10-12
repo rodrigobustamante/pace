@@ -58,6 +58,13 @@ export function secsUntilLocalMidnight(tz: string): number {
   return Math.max(60, 86400 - (h! * 3600 + min! * 60 + s!));
 }
 
+/** Seconds until the next local Monday 00:00, when a new week starts (min 60 s, for cache TTL) */
+export function secsUntilLocalMonday(tz: string): number {
+  const dayNum = localDayOfWeekNum(tz);
+  const fullDaysLeft = dayNum === 0 ? 0 : 7 - dayNum; // whole days after today
+  return fullDaysLeft * 86400 + secsUntilLocalMidnight(tz);
+}
+
 export interface PlannedWorkout {
   date: string;
   title: string;
