@@ -9,10 +9,15 @@ function createRedis(): Redis {
   }
 
   // Upstash (and other TLS endpoints) use rediss:// — ioredis enables TLS from the scheme.
-  return new Redis(url, {
+  const client = new Redis(url, {
     lazyConnect: true,
-    maxRetriesPerRequest: 3,
+    // Fail fast when Redis is down: callers either degrade (lib/cache) or fail closed.
+    connectTimeout: 5000,
+    maxRetriesPerRequest: 1,
   });
+  // Without a listener, ioredis reports every connection error as unhandled.
+  client.on("error", (err) => console.error("[redis]", err.message));
+  return client;
 }
 
 export const redis = globalForRedis.redis ?? createRedis();

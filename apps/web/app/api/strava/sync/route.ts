@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { syncActivities } from "@/services/strava/sync";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 
 const COOLDOWN_TTL = 3600; // 1 hour in seconds
 
@@ -13,8 +13,8 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [ttl, lastSyncAt] = await Promise.all([
-    redis.ttl(cooldownKey(user.id)),
-    redis.get(lastSyncKey(user.id)),
+    cache.ttl(cooldownKey(user.id)),
+    cache.get(lastSyncKey(user.id)),
   ]);
 
   const canSync = ttl <= 0;
@@ -29,7 +29,7 @@ export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const ttl = await redis.ttl(cooldownKey(user.id));
+  const ttl = await cache.ttl(cooldownKey(user.id));
   if (ttl > 0) {
     return NextResponse.json(
       { error: "Sync en cooldown", remainingSeconds: ttl },
@@ -39,8 +39,8 @@ export async function POST() {
 
   const now = new Date().toISOString();
   await Promise.all([
-    redis.setex(cooldownKey(user.id), COOLDOWN_TTL, "1"),
-    redis.set(lastSyncKey(user.id), now),
+    cache.setex(cooldownKey(user.id), COOLDOWN_TTL, "1"),
+    cache.set(lastSyncKey(user.id), now),
   ]);
 
   // Fire and return immediately — sync runs in background
