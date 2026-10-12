@@ -49,7 +49,12 @@ export async function GET(req: NextRequest) {
     tss,
   }));
 
-  const fitness = calculateFitness(dailyLoads);
+  const fitness = calculateFitness(
+    dailyLoads,
+    0,
+    0,
+    new Date().toISOString().split("T")[0], // decay through today
+  );
 
   // Weekly aggregation
   const weeklyMap = new Map<

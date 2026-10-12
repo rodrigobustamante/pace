@@ -58,6 +58,13 @@ export function secsUntilLocalMidnight(tz: string): number {
   return Math.max(60, 86400 - (h! * 3600 + min! * 60 + s!));
 }
 
+/** Seconds until the next local Monday 00:00, when a new week starts (min 60 s, for cache TTL) */
+export function secsUntilLocalMonday(tz: string): number {
+  const dayNum = localDayOfWeekNum(tz);
+  const fullDaysLeft = dayNum === 0 ? 0 : 7 - dayNum; // whole days after today
+  return fullDaysLeft * 86400 + secsUntilLocalMidnight(tz);
+}
+
 export interface PlannedWorkout {
   date: string;
   title: string;
@@ -438,7 +445,12 @@ export async function buildDailyContext(userId: string, tz = "UTC"): Promise<Dai
     dailyTSSMap.set(dateKey, (dailyTSSMap.get(dateKey) ?? 0) + (tss ?? 0));
   }
   const dailyLoads = Array.from(dailyTSSMap.entries()).map(([date, tss]) => ({ date, tss }));
-  const fitness = calculateFitness(dailyLoads);
+  const fitness = calculateFitness(
+    dailyLoads,
+    0,
+    0,
+    new Date().toISOString().split("T")[0], // decay through today
+  );
   const latest = fitness[fitness.length - 1];
   const prev = fitness[fitness.length - 2];
 
@@ -632,7 +644,12 @@ export async function buildWeeklyContext(userId: string, tz = "UTC"): Promise<We
     tss,
   }));
 
-  const fitness = calculateFitness(dailyLoads);
+  const fitness = calculateFitness(
+    dailyLoads,
+    0,
+    0,
+    new Date().toISOString().split("T")[0], // decay through today
+  );
   const latest = fitness[fitness.length - 1];
   const prev = fitness[fitness.length - 2];
 

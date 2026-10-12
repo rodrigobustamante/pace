@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
+import { buildWeeklyContext, formatGoalForPrompt, localDateStr, secsUntilLocalMonday } from "@/services/coach/context";
 import { redis } from "@/lib/redis";
 import { getModel } from "@/services/ai/registry";
 
@@ -178,7 +178,8 @@ Generate the weekly analysis in JSON. If there is an active goal, the analysis m
         }
 
         const parsed = extractJSON(fullText);
-        await redis.setex(cacheKey, 86400, JSON.stringify(parsed));
+        // Valid for the rest of the week: the key changes on Monday anyway.
+        await redis.setex(cacheKey, secsUntilLocalMonday(tz), JSON.stringify(parsed));
         controller.enqueue(encode({ type: "done", result: parsed }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
