@@ -8,7 +8,7 @@ import {
   localDateStr,
   secsUntilLocalMidnight,
 } from "@/services/coach/context";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 import { cookies } from "next/headers";
 import { parseModelJSON } from "@/lib/parseModelJSON";
 
@@ -53,9 +53,9 @@ export async function GET(req: NextRequest) {
   const refresh  = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
-    await redis.del(cacheKey);
+    await cache.del(cacheKey);
   } else {
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(JSON.parse(cached));
     }
@@ -110,7 +110,7 @@ If a planned workout exists for today, it is the default — deviate from it onl
 
     // Cache until end of the user's local day
     const ttl = secsUntilLocalMidnight(tz);
-    await redis.setex(cacheKey, ttl, JSON.stringify(parsed));
+    await cache.setex(cacheKey, ttl, JSON.stringify(parsed));
 
     return NextResponse.json(parsed);
   } catch (err) {

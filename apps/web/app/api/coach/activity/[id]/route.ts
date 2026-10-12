@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
 import { getModel } from "@/services/ai/registry";
 import { prisma } from "@/lib/db";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 import {
   secToPace,
   mToKm,
@@ -41,7 +41,7 @@ export async function GET(
   }
 
   const cacheKey = `coach:activity:${activity.id}`;
-  const cached = await redis.get(cacheKey);
+  const cached = await cache.get(cacheKey);
   if (cached) {
     return NextResponse.json(JSON.parse(cached));
   }
@@ -99,7 +99,7 @@ Generate the activity analysis in JSON.`;
     const parsed = JSON.parse(raw.slice(start, end + 1));
 
     // Cache 24h — activity data doesn't change
-    await redis.setex(cacheKey, 86400, JSON.stringify(parsed));
+    await cache.setex(cacheKey, 86400, JSON.stringify(parsed));
 
     return NextResponse.json(parsed);
   } catch (err) {

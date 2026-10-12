@@ -5,7 +5,7 @@ import {
   buildWeeklyContext,
   formatGoalForPrompt,
 } from "@/services/coach/context";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 import { prisma } from "@/lib/db";
 import { getModel } from "@/services/ai/registry";
 import { cookies } from "next/headers";
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   // ── Load history: Redis first, DB on cache miss ────────────────────────
   const key = historyKey(user.id, conversationId);
-  const raw = await redis.get(key);
+  const raw = await cache.get(key);
   let history: HistoryMessage[] = [];
 
   if (raw) {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         role: normalizeRole(m.role),
         content: m.content,
       }));
-      await redis.setex(key, HISTORY_TTL, JSON.stringify(history));
+      await cache.setex(key, HISTORY_TTL, JSON.stringify(history));
     }
   }
 
@@ -166,7 +166,7 @@ ${goalBlock}`;
           { role: "assistant" as const, content: fullResponse },
         ].slice(-MAX_HISTORY_TURNS);
 
-        await redis.setex(key, HISTORY_TTL, JSON.stringify(newHistory));
+        await cache.setex(key, HISTORY_TTL, JSON.stringify(newHistory));
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Error desconocido";
         controller.enqueue(encoder.encode(`\n\n[Error: ${msg}]`));

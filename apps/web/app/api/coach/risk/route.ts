@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { buildDailyContext, localDateStr } from "@/services/coach/context";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 
 /**
  * GET /api/coach/risk
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (!refresh) {
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) return NextResponse.json(JSON.parse(cached));
   }
 
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         : null,
     };
 
-    await redis.setex(cacheKey, 3600, JSON.stringify(result)); // 1h
+    await cache.setex(cacheKey, 3600, JSON.stringify(result)); // 1h
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
