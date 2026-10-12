@@ -31,7 +31,7 @@ export function calculateFitness(
   for (const { date, tss } of dailyLoads) {
     tssByDate.set(date, (tssByDate.get(date) ?? 0) + tss);
   }
-  const dates = [...tssByDate.keys()].sort();
+  const dates = Array.from(tssByDate.keys()).sort();
   const result: FitnessPoint[] = [];
   if (dates.length === 0) return result;
 
