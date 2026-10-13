@@ -35,3 +35,6 @@ packages/db/node_modules/
 npm-debug.log*
 pnpm-debug.log*
 .vercel
+
+# CodeGraph local index
+.codegraph/
