@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations, useLocale } from "next-intl";
 import { StatCard } from "@/components/StatCard";
+import { RiveFormWidget } from "@/components/RiveFormWidget";
 import { VolumeChart } from "@/components/charts/VolumeChart";
 import { FitnessChart } from "@/components/charts/FitnessChart";
 import { HRZonesChart } from "@/components/charts/HRZonesChart";
@@ -151,7 +152,20 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className={`${grid.fadeUp3} ${grid.rg21}`}>
+      {/* ── Rive form widget ── */}
+      {!loadingMetrics && (
+        <div className={`${grid.fadeUp3}`} style={{ marginBottom: 20 }}>
+          <RiveFormWidget
+            tsb={tsb}
+            // To activate a Rive animation, uncomment and fill in:
+            // rivSrc="/animations/runner.riv"
+            // stateMachineName="Form Machine"
+            // inputName="formLevel"
+          />
+        </div>
+      )}
+
+      <div className={`${grid.fadeUp4} ${grid.rg21}`}>
         {loadingMetrics ? (
           <>
             <SkeletonCard height={420} />
@@ -165,7 +179,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className={`${grid.fadeUp4} ${grid.rg32}`}>
+      <div className={`${grid.fadeUp5} ${grid.rg32}`}>
         {loadingMetrics ? (
           <>
             <SkeletonCard height={260} />
@@ -186,7 +200,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className={`${grid.fadeUp5} ${shared.coachBanner}`}>
+      <div className={`${grid.fadeUp6} ${shared.coachBanner}`}>
         <div className={`${shared.coachBannerRow} ${grid.coachBannerInner}`}>
           <div className={shared.emoji28}>🤖</div>
           <div className={shared.flex1}>

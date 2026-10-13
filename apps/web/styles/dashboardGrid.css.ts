@@ -172,6 +172,11 @@ export const fadeUp5 = style([
   { animationDelay: "0.33s", opacity: 0 },
 ]);
 
+export const fadeUp6 = style([
+  fadeUpBase,
+  { animationDelay: "0.40s", opacity: 0 },
+]);
+
 export const heroTitle = style({
   fontSize: 40,
   fontWeight: 700,
