@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 
 const DEBOUNCE_TTL = 23 * 60 * 60; // 23 hours — runs at most once per day per goal
 
@@ -44,14 +44,8 @@ export async function POST(
     return Response.json({ error: "Plan no encontrado" }, { status: 404 });
   }
 
-  // Debounce check
-  let already: string | null;
-  try {
-    already = await redis.get(debounceKey(goalId));
-  } catch (err) {
-    console.error(`[check-missed] Redis error for goalId=${goalId}:`, err);
-    return Response.json({ newlyMarked: 0, missedDays: [], skipped: true });
-  }
+  // Debounce check. Without Redis the check runs on every load; marking is idempotent.
+  const already = await cache.get(debounceKey(goalId));
   if (already) {
     return Response.json({ newlyMarked: 0, missedDays: [], skipped: true });
   }
@@ -71,7 +65,7 @@ export async function POST(
 
   if (unconfirmedPastDays.length === 0) {
     // Nothing to check — still set debounce so we don't recheck every load
-    await redis.setex(debounceKey(goalId), DEBOUNCE_TTL, "1");
+    await cache.setex(debounceKey(goalId), DEBOUNCE_TTL, "1");
     return Response.json({ newlyMarked: 0, missedDays: [], skipped: false });
   }
 
@@ -108,7 +102,7 @@ export async function POST(
   }
 
   // Set debounce regardless of result
-  await redis.setex(debounceKey(goalId), DEBOUNCE_TTL, "1");
+  await cache.setex(debounceKey(goalId), DEBOUNCE_TTL, "1");
 
   const missedDays = toMark.map((d) => ({
     date: d.date.toISOString().split("T")[0]!,

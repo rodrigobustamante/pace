@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { isCronRequest } from "@/lib/cron";
 
 interface ExpoPushMessage {
   to: string;
@@ -41,10 +42,9 @@ async function sendExpoPushNotifications(messages: ExpoPushMessage[]) {
   return results;
 }
 
-export async function POST(req: NextRequest) {
-  // Vercel Cron authentication
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+// Vercel Cron sends GET (see vercel.json); POST stays for manual runs.
+export async function GET(req: NextRequest) {
+  if (!isCronRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -73,3 +73,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ sent, total: messages.length });
 }
+
+export const POST = GET;

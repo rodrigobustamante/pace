@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 
 const HISTORY_TTL = 60 * 60 * 24 * 7; // 7 days
 
@@ -42,9 +42,9 @@ export async function GET(req: NextRequest) {
         content: m.content,
       }));
       const key = historyKey(user.id, conversationId);
-      const existing = await redis.get(key);
+      const existing = await cache.get(key);
       if (!existing) {
-        await redis.setex(key, HISTORY_TTL, JSON.stringify(history));
+        await cache.setex(key, HISTORY_TTL, JSON.stringify(history));
       }
     }
 

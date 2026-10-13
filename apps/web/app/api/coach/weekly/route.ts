@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { getUserFromRequest } from "@/lib/auth";
-import { buildWeeklyContext, formatGoalForPrompt, localDateStr } from "@/services/coach/context";
-import { redis } from "@/lib/redis";
+import { buildWeeklyContext, formatGoalForPrompt, localDateStr, secsUntilLocalMonday } from "@/services/coach/context";
+import { cache } from "@/lib/cache";
 import { getModel } from "@/services/ai/registry";
 
 const COACH_SYSTEM_PROMPT = `You are an expert, personalized running coach in the style of Runna.
@@ -79,9 +79,9 @@ export async function GET(req: NextRequest) {
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
-    await redis.del(cacheKey);
+    await cache.del(cacheKey);
   } else {
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) {
       // Cache hit — single done event, no streaming needed
       return new Response(
@@ -178,7 +178,8 @@ Generate the weekly analysis in JSON. If there is an active goal, the analysis m
         }
 
         const parsed = extractJSON(fullText);
-        await redis.setex(cacheKey, 86400, JSON.stringify(parsed));
+        // Valid for the rest of the week: the key changes on Monday anyway.
+        await cache.setex(cacheKey, secsUntilLocalMonday(tz), JSON.stringify(parsed));
         controller.enqueue(encode({ type: "done", result: parsed }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

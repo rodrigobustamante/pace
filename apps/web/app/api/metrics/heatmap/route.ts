@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { redis } from "@/lib/redis";
+import { cache } from "@/lib/cache";
 
 interface HeatmapDay {
   date: string;
@@ -27,9 +27,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const refresh = req.nextUrl.searchParams.get("refresh") === "1";
 
   if (refresh) {
-    await redis.del(cacheKey);
+    await cache.del(cacheKey);
   } else {
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(JSON.parse(cached) as HeatmapResponse);
     }
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const response: HeatmapResponse = { days, maxKm, maxTSS };
 
-  await redis.setex(cacheKey, 6 * 3600, JSON.stringify(response));
+  await cache.setex(cacheKey, 6 * 3600, JSON.stringify(response));
 
   return NextResponse.json(response);
 }

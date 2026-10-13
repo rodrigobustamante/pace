@@ -10,25 +10,43 @@ export interface FitnessPoint {
   tsb: number; // Training Stress Balance (Form = Fitness - Fatigue)
 }
 
+/**
+ * Banister impulse-response model over a daily TSS series.
+ *
+ * The EWMA advances one step per calendar day: days without a load in
+ * `dailyLoads` (rest days, gaps between activities) count as TSS 0, so CTL and
+ * ATL decay through them. Pass `until` (YYYY-MM-DD) to keep decaying past the
+ * last activity up to that day, e.g. today, so the latest point is current.
+ */
 export function calculateFitness(
   dailyLoads: DailyLoad[],
   initialCtl = 0,
   initialAtl = 0,
+  until?: string,
 ): FitnessPoint[] {
   const TAU_CTL = 42;
   const TAU_ATL = 7;
 
-  const sorted = [...dailyLoads].sort((a, b) => a.date.localeCompare(b.date));
+  const tssByDate = new Map<string, number>();
+  for (const { date, tss } of dailyLoads) {
+    tssByDate.set(date, (tssByDate.get(date) ?? 0) + tss);
+  }
+  const dates = Array.from(tssByDate.keys()).sort();
   const result: FitnessPoint[] = [];
+  if (dates.length === 0) return result;
+
+  const first = dates[0]!;
+  const last = until && until > dates[dates.length - 1]! ? until : dates[dates.length - 1]!;
 
   let ctl = initialCtl;
   let atl = initialAtl;
 
-  for (const { date, tss } of sorted) {
+  for (let day = first; day <= last; day = nextDay(day)) {
+    const tss = tssByDate.get(day) ?? 0;
     ctl = ctl + (tss - ctl) / TAU_CTL;
     atl = atl + (tss - atl) / TAU_ATL;
     result.push({
-      date,
+      date: day,
       ctl: round(ctl),
       atl: round(atl),
       tsb: round(ctl - atl),
@@ -36,6 +54,11 @@ export function calculateFitness(
   }
 
   return result;
+}
+
+function nextDay(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + 1)).toISOString().split("T")[0]!;
 }
 
 // HR-based running TSS (simplified Skiba method)
