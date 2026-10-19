@@ -1,5 +1,11 @@
 # PACE — Personal Running Analytics
 
+[![tests](https://github.com/rodrigobustamante/pace/actions/workflows/tests.yml/badge.svg)](https://github.com/rodrigobustamante/pace/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0891b2.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-pace.rodrigobustamante.cl-f97316.svg)](https://pace.rodrigobustamante.cl)
+
+<a href="https://pace.rodrigobustamante.cl"><img src="docs/preview.png" alt="PACE landing page" width="100%" /></a>
+
 > Training analytics platform that centralizes Strava data, computes performance metrics, and delivers personalized AI coaching — available on web and iOS.
 
 ---
@@ -431,3 +437,9 @@ docker-compose down -v             # Stop and remove volumes
 ## License
 
 MIT
+
+---
+
+## License
+
+[MIT](LICENSE) © Rodrigo Bustamante
