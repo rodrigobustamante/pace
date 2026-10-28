@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ describe("POST /api/coach/chat", () => {
     getUserFromRequest.mockResolvedValue({ id: "u1", preferredModel: "gemini-2.5-flash" });
     const { POST } = await import("./route");
     const res = await POST(
-      new Request("http://localhost/api/coach/chat", {
+      new NextRequest("http://localhost/api/coach/chat", {
         method: "POST",
         body: "invalid-json",
         headers: { "Content-Type": "application/json" },
@@ -246,10 +247,10 @@ describe("POST /api/coach/chat", () => {
 function makeRequest(
   body: Record<string, unknown>,
   extraHeaders: Record<string, string> = {},
-): Request {
-  return new Request("http://localhost/api/coach/chat", {
+): NextRequest {
+  return new NextRequest("http://localhost/api/coach/chat", {
     method: "POST",
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", ...extraHeaders },
-  }) as never;
+  });
 }

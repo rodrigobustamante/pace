@@ -103,14 +103,13 @@ describe("GET /api/strava/callback", () => {
       }),
     });
 
-    const prevEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
 
     const { GET } = await import("./route");
     const req = new NextRequest("http://localhost:3000/api/strava/callback?code=good");
     const res = await GET(req);
 
-    process.env.NODE_ENV = prevEnv;
+    vi.unstubAllEnvs();
 
     expect(res.status).toBe(307);
     expect(res.headers.get("Location")).toContain("/dashboard");

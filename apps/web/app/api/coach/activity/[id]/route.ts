@@ -25,10 +25,8 @@ Respond ONLY in valid JSON with this exact structure, no extra text:
   "tip": { "title": "string", "body": "string — one concrete improvement for next similar session" }
 }`;
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

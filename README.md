@@ -29,7 +29,7 @@
 
 | Layer         | Technology                                            |
 | ------------- | ----------------------------------------------------- |
-| Framework     | Next.js 14 (App Router)                               |
+| Framework     | Next.js 16 (App Router)                               |
 | Language      | TypeScript (strict)                                   |
 | Styling       | Vanilla Extract (`@vanilla-extract/css`)              |
 | Charts        | Recharts                                              |
@@ -61,7 +61,7 @@
 ```
 pace/
 ├── apps/
-│   ├── web/                        # Next.js 14 app
+│   ├── web/                        # Next.js 16 app
 │   │   ├── app/
 │   │   │   ├── api/
 │   │   │   │   ├── strava/         # OAuth, callback, webhook, manual sync

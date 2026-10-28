@@ -23,7 +23,7 @@ Target coaching style: **Runna** — training load analysis, form tracking, perf
 
 ### Frontend web
 
-- **Next.js 14** (App Router)
+- **Next.js 16** (App Router)
 - **TypeScript** strict mode (`strict: true`)
 - **Vanilla Extract** (`@vanilla-extract/css`, `@vanilla-extract/next-plugin`) — typed styles in `apps/web/styles/*.css.ts` (global theme, layout, components); `assignInlineVars` or inline `style` only for truly dynamic values (e.g. chart colors)
 - **Recharts** for charts (already validated in prototype)
@@ -62,7 +62,7 @@ Target coaching style: **Runna** — training load analysis, form tracking, perf
 ```
 pace/
 ├── apps/
-│   ├── web/                    # Next.js 14 app
+│   ├── web/                    # Next.js 16 app
 │   │   ├── app/
 │   │   │   ├── (dashboard)/    # Route group: authenticated
 │   │   │   │   ├── page.tsx    # Overview / main dashboard

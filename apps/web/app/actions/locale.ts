@@ -10,7 +10,7 @@ export async function setLocale(locale: string) {
   const resolved: Locale = VALID_LOCALES.includes(locale as Locale)
     ? (locale as Locale)
     : "es";
-  cookies().set("NEXT_LOCALE", resolved, {
+  (await cookies()).set("NEXT_LOCALE", resolved, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
